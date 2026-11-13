@@ -32,6 +32,9 @@ jobs:
       - name: Run plugin static checks
         run: node ./tests/static-check.mjs
 
+      - name: Run catalog regression checks
+        run: php ./tests/catalog-rows.php
+
       - name: Build release package
         shell: pwsh
         run: ./scripts/build-release.ps1

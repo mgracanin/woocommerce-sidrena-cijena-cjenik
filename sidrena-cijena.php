@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Sidrena Cijena i Cjenik | Matija Gračanin
  * Description: Prikaz sidrene cijene i javni strojno čitljivi cjenik za WooCommerce prema odlukama NN 101/2026.
- * Version: 1.2.3
+ * Version: 1.2.4
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.4

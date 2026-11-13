@@ -2,6 +2,13 @@
 
 Sve značajne promjene projekta bilježe se u ovoj datoteci.
 
+## [1.2.4] - 2026-11-13
+
+### Ispravljeno
+
+- složeni (grouped) roditelji izostavljaju se iz CSV/XML cjenika, uključujući kada imaju postavku „Uvijek uključi u cjenik”
+- podproizvodi ostaju zasebno navedeni prema vlastitim postavkama vidljivosti; proizvodi s valjanom cijenom 0,00 ostaju uključeni
+
 ## [1.2.3] - 2026-09-21
 
 ### Refaktorirano

@@ -4,7 +4,7 @@ Tags: woocommerce, cijena, cjenik, csv, hrvatska
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -85,6 +85,9 @@ Ne. WP-Cron se pokreće prometom na web-stranici. Za zajamčeno izvršenje upotr
 Ne. Dodatak tehnički podržava javno objavljene zahtjeve. Vlasnik trgovine mora provjeriti podatke, poslovna pravila i konačnu usklađenost.
 
 == Changelog ==
+
+= 1.2.4 =
+* Složeni (grouped) roditelji više se ne izvoze kao zasebni proizvodi u CSV/XML cjeniku; njihovi podproizvodi ostaju zasebno navedeni.
 
 = 1.2.3 =
 * Interni PHP namespace promijenjen je u neutralni SidrenaCijenaCjenik.

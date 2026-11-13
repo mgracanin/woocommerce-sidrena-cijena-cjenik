@@ -83,6 +83,12 @@ final class CatalogEngine
                     continue;
                 }
 
+                // Grouped parents are containers; their children are queried as
+                // individual products and must not be exported a second time.
+                if ($product->is_type('grouped')) {
+                    continue;
+                }
+
                 if ($product->is_type('variable')) {
                     foreach ($product->get_children() as $variationId) {
                         $variation = wc_get_product($variationId);

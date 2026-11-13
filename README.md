@@ -23,6 +23,7 @@ Dodatak je napravljen kao tehnička pomoć vlasnicima internetskih trgovina koje
 - odgođeno osvježavanje nakon promjene proizvoda ili zalihe
 - najmanje 30 dana arhive cjenika
 - izvoz varijacija, zalihe, brenda, barkoda i podataka o posebnom obliku prodaje
+- izvoz podproizvoda složenih (grouped) proizvoda bez zasebnog retka grouped roditelja
 - pregled spremnosti podataka i prikaz zadnje pogreške
 - ugrađena pomoć i dijagnostika
 - podrška za WooCommerce HPOS te Cart i Checkout Blocks
@@ -140,6 +141,10 @@ Ovisno o vrsti proizvoda i dostupnim podacima, cjenik može sadržavati:
 
 Dodatak podržava WooCommerce Brands i više često korištenih dodataka za brendove i barkodove.
 
+Nadređeni varijabilni i složeni (grouped) proizvodi ne izvoze se kao zasebni retci. Izvoze se njihove varijacije odnosno podproizvodi. Podproizvodi grouped proizvoda slijede vlastite postavke vidljivosti i uključivanja u cjenik.
+
+Za izostavljanje pojedinog proizvoda u uređivanju proizvoda, uz SKU, odaberite **Prikaz u cjeniku → Uvijek izostavi iz cjenika**. Postavka je dostupna i u brzom uređivanju. Nakon spremanja ponovno generirajte cjenik. Isključivanje cijele kategorije zasad nije podržano.
+
 Prije javne objave provjerite potpunost i točnost izvezenih podataka te odgovara li format trenutačno važećim tehničkim zahtjevima.
 
 ## Pravna podloga
@@ -175,6 +180,12 @@ Statičke provjere moguće je pokrenuti naredbom:
 
 ```powershell
 node .\tests\static-check.mjs
+```
+
+Regresijska provjera odabira proizvoda i CSV/XML izvoza koristi PHP, bez instalacije WordPressa:
+
+```powershell
+php .\tests\catalog-rows.php
 ```
 
 ## Prijava problema i doprinos
