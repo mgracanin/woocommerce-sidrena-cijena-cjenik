@@ -6,6 +6,12 @@
 
 Besplatan WordPress dodatak za prikaz sidrene cijene te objavu strojno čitljivog CSV/XML cjenika u WooCommerce trgovini.
 
+## Aktualno izdanje: 1.2.4
+
+Objavljeno **13. studenoga 2026.** — [preuzmi instalacijski ZIP](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/download/v1.2.4/sidrena-cijena-v1.2.4.zip) · [bilješke izdanja](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/tag/v1.2.4).
+
+Ispravljen je izvoz složenih (grouped) proizvoda: roditelj se više ne pojavljuje kao zaseban redak u CSV/XML cjeniku, a njegovi podproizvodi ostaju zasebno navedeni bez dupliciranja. Nakon nadogradnje **ponovno generirajte cjenik**.
+
 Dodatak je napravljen kao tehnička pomoć vlasnicima internetskih trgovina koje koriste WooCommerce pri provedbi odluka objavljenih u Narodnim novinama 101/2026.
 
 > [!IMPORTANT]
