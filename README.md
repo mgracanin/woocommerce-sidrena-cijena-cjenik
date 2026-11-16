@@ -7,7 +7,9 @@ Besplatan WordPress dodatak za bazne cijene i javni CSV/XML cjenik. Naziv dodatk
 
 ## Verzija 2.0.0 — prilagodba pravilnicima NN 132/2026
 
-Ova verzija mijenja strukturu izvoza. Integracije koje čitaju CSV/XML treba prilagoditi prije nadogradnje. [Najnovije objavljeno izdanje i instalacijski ZIP](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/latest) dostupni su na GitHub Releases; provjerite oznaku verzije prije preuzimanja. Promjena koda sama ne objavljuje GitHub Release.
+**[Preuzmi instalacijski ZIP 2.0.0](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/download/v2.0.0/sidrena-cijena-v2.0.0.zip)** · [Bilješke izdanja](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/tag/v2.0.0)
+
+Ova verzija mijenja strukturu izvoza. Integracije koje čitaju CSV/XML treba prilagoditi prije nadogradnje. Nakon provjere postojećih iznosa, datuma i novih postavki ponovno generirajte cjenik.
 
 Implementacija prati Pravilnik o isticanju bazne cijene proizvoda (1583) i Pravilnik o načinu objave cjenika proizvoda (1584), objavljene 16.11.2026., s početkom primjene 17.11.2026. [Službeni tekstovi, str. 5–7](https://narodne-novine.nn.hr/eli/sluzbeni/2026/132/pdf).
 
