@@ -82,12 +82,15 @@ function cjenik_unit_price($gross, $quantity, $unit) {
 
 add_action('woocommerce_product_options_inventory_product_data', 'sidrena_cijena_compliance_fields');
 function sidrena_cijena_compliance_fields() {
-    woocommerce_wp_text_input(array('id' => Config::BASE_DATE_META_KEY, 'type' => 'date', 'label' => __('Datum bazne cijene', 'sidrena-cijena'), 'description' => __('Prazno = zadani datum trgovine. Za novu ponudu unesite datum prvog nuđenja, ne datum zadnje promjene cijene.', 'sidrena-cijena'), 'desc_tip' => true));
-    woocommerce_wp_text_input(array('id' => '_cjenik_net_quantity', 'label' => __('Neto količina u odabranoj jedinici', 'sidrena-cijena'), 'data_type' => 'decimal', 'description' => __('Primjer: 500 uz g, ili 0,5 uz kg. Za komad unesite 1. Ne koristi se transportna težina.', 'sidrena-cijena'), 'desc_tip' => true));
-    woocommerce_wp_text_input(array('id' => '_cjenik_ean', 'label' => __('EAN barkod za cjenik', 'sidrena-cijena'), 'description' => __('Zasebno od općeg barkoda. Prazno koristi postojeći EAN/GTIN ako je dostupan.', 'sidrena-cijena'), 'desc_tip' => true));
-    woocommerce_wp_text_input(array('id' => '_cjenik_general_barcode', 'label' => __('Opći barkod (ako se razlikuje od EAN-a)', 'sidrena-cijena')));
-    woocommerce_wp_checkbox(array('id' => '_cjenik_unit_required', 'label' => __('Obvezna jedinična cijena', 'sidrena-cijena'), 'description' => __('Označite kada je za robu propisana jedinična cijena; neto količina tada je obvezna.', 'sidrena-cijena')));
-    woocommerce_wp_checkbox(array('id' => '_base_price_exempt', 'label' => __('Pravno izuzeće proizvoda', 'sidrena-cijena'), 'description' => __('Samo za proizvod koji je izuzet prema čl. 4. pravilnika. Isključuje bazni prikaz i cjenik. Nije za redovnu robu koja samo ima personalizirani popust.', 'sidrena-cijena')));
+    global $product_object;
+    $ean = $product_object ? $product_object->get_meta('_cjenik_ean', true) : '';
+    if ($ean === '' && $product_object) { $ean = cjenik_get_barcode($product_object); }
+    woocommerce_wp_text_input(array('id' => Config::BASE_DATE_META_KEY, 'type' => 'date', 'label' => __('Datum bazne cijene', 'sidrena-cijena'), 'description' => __('Ako polje ostavite prazno, primjenjuje se zadani datum trgovine. Za novi proizvod unesite datum kada je prvi put ponuđen kupcima, a ne datum posljednje promjene cijene.', 'sidrena-cijena'), 'desc_tip' => true));
+    woocommerce_wp_text_input(array('id' => '_cjenik_net_quantity', 'label' => __('Neto količina u odabranoj jedinici', 'sidrena-cijena'), 'data_type' => 'decimal', 'description' => __('Primjerice, unesite 500 ako je jedinica mjere g ili 0,5 ako je jedinica mjere kg. Za proizvod koji se prodaje po komadu unesite 1. Ne upisujte masu paketa za dostavu.', 'sidrena-cijena'), 'desc_tip' => true));
+    woocommerce_wp_text_input(array('id' => '_cjenik_ean', 'value' => $ean, 'label' => __('EAN kod za cjenik', 'sidrena-cijena'), 'description' => __('EAN kod navodi se odvojeno od drugih barkodova. Ako polje ostavite prazno, dodatak će preuzeti postojeći EAN ili GTIN proizvoda, ako je dostupan.', 'sidrena-cijena'), 'desc_tip' => true));
+    woocommerce_wp_text_input(array('id' => '_cjenik_general_barcode', 'label' => __('Drugi barkod (ako se razlikuje od EAN koda)', 'sidrena-cijena')));
+    woocommerce_wp_checkbox(array('id' => '_cjenik_unit_required', 'label' => __('Obvezan prikaz cijene za jedinicu mjere', 'sidrena-cijena'), 'description' => __('Označite ako je za ovu robu propisan prikaz cijene za jedinicu mjere. U tom slučaju obvezno unesite neto količinu.', 'sidrena-cijena')));
+    woocommerce_wp_checkbox(array('id' => '_base_price_exempt', 'label' => __('Proizvod je izuzet od obveze', 'sidrena-cijena'), 'description' => __('Označite samo ako je proizvod izuzet prema članku 4. pravilnika. Bazna cijena neće se prikazivati, a proizvod će se izostaviti iz cjenika. Popust odobren pojedinom kupcu sam po sebi nije razlog za izuzimanje proizvoda.', 'sidrena-cijena')));
 }
 
 add_action('woocommerce_process_product_meta', 'sidrena_cijena_save_compliance_fields', 20);
@@ -111,10 +114,10 @@ function sidrena_cijena_save_compliance_fields($id) {
 
 add_action('woocommerce_product_after_variable_attributes', 'sidrena_cijena_variation_compliance_fields', 20, 3);
 function sidrena_cijena_variation_compliance_fields($loop, $data, $variation) {
-    foreach (array(Config::BASE_DATE_META_KEY => 'Datum bazne cijene (prazno = roditelj)', '_cjenik_net_quantity' => 'Neto količina (prazno = roditelj)', '_cjenik_ean' => 'EAN barkod', '_cjenik_general_barcode' => 'Opći barkod') as $key => $label) {
+    foreach (array(Config::BASE_DATE_META_KEY => 'Datum bazne cijene (prazno polje preuzima datum glavnog proizvoda)', '_cjenik_net_quantity' => 'Neto količina (prazno polje preuzima količinu glavnog proizvoda)', '_cjenik_ean' => 'EAN barkod', '_cjenik_general_barcode' => 'Opći barkod') as $key => $label) {
         woocommerce_wp_text_input(array('id' => $key . '_' . $loop, 'name' => $key . '[' . $loop . ']', 'type' => $key === Config::BASE_DATE_META_KEY ? 'date' : 'text', 'label' => __($label, 'sidrena-cijena'), 'value' => get_post_meta($variation->ID, $key, true), 'wrapper_class' => 'form-row form-row-full'));
     }
-    woocommerce_wp_select(array('id' => '_base_price_exempt_' . $loop, 'name' => '_base_price_exempt[' . $loop . ']', 'label' => __('Pravno izuzeće varijacije', 'sidrena-cijena'), 'value' => get_post_meta($variation->ID, '_base_price_exempt', true), 'options' => array('' => 'Naslijedi roditelja', 'no' => 'Nije izuzeto', 'yes' => 'Izuzeto — bez bazne cijene i cjenika'), 'wrapper_class' => 'form-row form-row-full'));
+    woocommerce_wp_select(array('id' => '_base_price_exempt_' . $loop, 'name' => '_base_price_exempt[' . $loop . ']', 'label' => __('Izuzeće varijacije od obveze', 'sidrena-cijena'), 'value' => get_post_meta($variation->ID, '_base_price_exempt', true), 'options' => array('' => 'Prema postavci glavnog proizvoda', 'no' => 'Nije izuzeta', 'yes' => 'Izuzeta — bez prikaza bazne cijene i izvoza u cjenik'), 'wrapper_class' => 'form-row form-row-full'));
 }
 
 add_action('woocommerce_save_product_variation', 'sidrena_cijena_save_variation_compliance', 20, 2);
@@ -157,6 +160,6 @@ add_action('admin_notices', 'sidrena_cijena_compliance_notice');
 function sidrena_cijena_compliance_notice() {
     if (!current_user_can('manage_woocommerce')) { return; }
     if (get_option('sidrena_cijena_compliance_reviewed', '') !== '2.0.0') {
-        echo '<div class="notice notice-warning"><p>Sidrena Cijena 2.0: provjerite povijesne iznose i datume baznih cijena prema evidenciji. U postavkama Cjenik unesite identifikator trgovca, odaberite robu/usluge i ponovno generirajte cjenik. Ranije automatski uneseni iznosi nisu potvrda povijesne cijene.</p></div>';
+        echo '<div class="notice notice-warning"><p>Provjerite iznose i referentne datume baznih cijena prema vlastitoj evidenciji. U kartici Cjenik unesite identifikacijski broj trgovca, odaberite vrstu cjenika te ga ponovno izradite i objavite. Ranije automatski uneseni iznosi ne potvrđuju cijenu koja je vrijedila na referentni dan.</p></div>';
     }
 }

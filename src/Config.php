@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
 
 final class Config
 {
-    const VERSION = '2.0.0';
+    const VERSION = '2.1.0';
     const REFERENCE_DATE = '10.09.2026.';
     const ANCHOR_META_KEY = '_anchor_price';
     const BASE_DATE_META_KEY = '_base_price_date';

@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Sidrena Cijena i Cjenik | Matija Gračanin
- * Description: Prikaz sidrene cijene i javni strojno čitljivi cjenik za WooCommerce prema pravilnicima NN 132/2026.
- * Version: 2.0.0
+ * Description: Prikaz bazne cijene i javni strojno čitljivi cjenik za WooCommerce prema pravilnicima NN 132/2026.
+ * Version: 2.1.0
  * Requires at least: 6.0
  * Tested up to: 7.1
  * Requires PHP: 7.4
@@ -83,7 +83,7 @@ function sidrena_cijena_initialized_notice() {
 
 function sidrena_cijena_font_family_choices() {
     return array(
-        'inherit'                              => __('Naslijeđeno od teme (preporučeno)', 'sidrena-cijena'),
+        'inherit'                              => __('Prema postavkama teme (preporučeno)', 'sidrena-cijena'),
         'Arial, Helvetica, sans-serif'          => 'Arial',
         'Georgia, serif'                        => 'Georgia',
         'Verdana, sans-serif'                   => 'Verdana',
@@ -95,14 +95,14 @@ function sidrena_cijena_font_family_choices() {
 function sidrena_cijena_font_weight_choices() {
     return array(
         'normal' => __('Normalno', 'sidrena-cijena'),
-        'bold'   => __('Podebljano (bold)', 'sidrena-cijena'),
+        'bold'   => __('Podebljano', 'sidrena-cijena'),
     );
 }
 
 function sidrena_cijena_font_style_choices() {
     return array(
         'normal' => __('Normalno', 'sidrena-cijena'),
-        'italic' => __('Kurziv (italic)', 'sidrena-cijena'),
+        'italic' => __('Kurziv', 'sidrena-cijena'),
     );
 }
 
@@ -124,11 +124,11 @@ function sidrena_cijena_add_field() {
         'id'          => Config::ANCHOR_META_KEY,
         'label'       => sprintf(
             /* translators: %s: reference date */
-            __('Bazna cijena (zadano %s)', 'sidrena-cijena'),
+            __('Bazna cijena (zadani datum: %s)', 'sidrena-cijena'),
             (new DateTimeImmutable(sidrena_cijena_base_date(null)))->format('d.m.Y.')
         ),
         'desc_tip'    => true,
-        'description' => __('Unesite povijesni iznos prema evidenciji, u istoj poreznoj osnovi kao WooCommerce cijene. Prazno ostaje nepoznato; nema automatskog kopiranja. Datum se uređuje u kartici Inventar.', 'sidrena-cijena'),
+        'description' => __('Unesite baznu cijenu prema vlastitoj evidenciji. Iznos unesite na istoj poreznoj osnovi kao ostale cijene u WooCommerceu. Prazno polje neće se automatski popuniti. Referentni datum uredite u kartici Inventar.', 'sidrena-cijena'),
         'data_type'   => 'price',
     ));
 }
@@ -405,7 +405,7 @@ function sidrena_cijena_variation_field($loop, $variation_data, $variation) {
             <?php
             printf(
                 /* translators: %s: reference date */
-                esc_html__('Bazna cijena (zadano %s)', 'sidrena-cijena'),
+                esc_html__('Bazna cijena (zadani datum: %s)', 'sidrena-cijena'),
                 esc_html((new DateTimeImmutable(sidrena_cijena_base_date(null)))->format('d.m.Y.'))
             );
             ?>
@@ -415,7 +415,7 @@ function sidrena_cijena_variation_field($loop, $variation_data, $variation) {
             name="variable_anchor_price[<?php echo esc_attr($loop); ?>]"
             class="wc_input_price"
             value="<?php echo esc_attr($value); ?>"
-            placeholder="<?php echo esc_attr__('Prazno = bazna cijena nije unesena', 'sidrena-cijena'); ?>"
+            placeholder="<?php echo esc_attr__('Bazna cijena nije unesena', 'sidrena-cijena'); ?>"
         />
     </p>
     <?php
@@ -519,7 +519,7 @@ function sidrena_cijena_render_settings_page() {
     }
 
     $tabs = array(
-        'sidrena-cijena' => __('Sidrena cijena', 'sidrena-cijena'),
+        'sidrena-cijena' => __('Bazna cijena', 'sidrena-cijena'),
         'cjenik'         => __('Cjenik', 'sidrena-cijena'),
         'pomoc'           => __('Pomoć', 'sidrena-cijena'),
     );
@@ -607,7 +607,7 @@ function sidrena_cijena_render_tab_content() {
         }
         update_option(Config::COLOR_OPTION, $color);
 
-        echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Postavke spremljene.', 'sidrena-cijena') . '</p></div>';
+        echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Postavke su spremljene.', 'sidrena-cijena') . '</p></div>';
     }
 
     $enabled = get_option(Config::DISPLAY_ENABLED_OPTION, 'yes');
@@ -621,27 +621,27 @@ function sidrena_cijena_render_tab_content() {
     $color = $s['color'];
     $anchor_status = sidrena_cijena_get_anchor_status();
     ?>
-        <p><?php echo esc_html__('Bazna cijena prema NN 132/2026. Odaberite zadani referentni datum prema asortimanu; za pojedine proizvode i nove ponude datum uredite u Inventaru.', 'sidrena-cijena'); ?></p>
+        <p><?php echo esc_html__('Odaberite referentni datum bazne cijene prema vrsti robe ili usluge. Ako se datum pojedinog proizvoda razlikuje od zadanoga, unesite ga u kartici Inventar.', 'sidrena-cijena'); ?></p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 20px;">
             <div style="background:#fff;border:1px solid #dcdcde;padding:14px 18px;min-width:170px;"><strong style="font-size:22px;display:block;"><?php echo (int) $anchor_status['total']; ?></strong><?php echo esc_html__('proizvoda i varijacija', 'sidrena-cijena'); ?></div>
             <div style="background:#fff;border:1px solid #dcdcde;padding:14px 18px;min-width:170px;"><strong style="font-size:22px;display:block;color:#008a20;"><?php echo (int) $anchor_status['set']; ?></strong><?php echo esc_html__('s unesenom cijenom', 'sidrena-cijena'); ?></div>
-            <div style="background:#fff;border:1px solid #dcdcde;padding:14px 18px;min-width:170px;"><strong style="font-size:22px;display:block;color:<?php echo $anchor_status['missing'] ? '#b32d2e' : '#008a20'; ?>;"><?php echo (int) $anchor_status['missing']; ?></strong><?php echo esc_html__('bez sidrene cijene', 'sidrena-cijena'); ?></div>
+            <div style="background:#fff;border:1px solid #dcdcde;padding:14px 18px;min-width:170px;"><strong style="font-size:22px;display:block;color:<?php echo $anchor_status['missing'] ? '#b32d2e' : '#008a20'; ?>;"><?php echo (int) $anchor_status['missing']; ?></strong><?php echo esc_html__('bez bazne cijene', 'sidrena-cijena'); ?></div>
         </div>
         <form method="post" action="<?php echo esc_url($tab_url); ?>">
             <?php wp_nonce_field('sidrena_cijena_settings_save', 'sidrena_cijena_nonce'); ?>
             <table class="form-table" role="presentation">
                 <tr>
-                    <th scope="row"><?php echo esc_html__('Prikaz sidrene cijene', 'sidrena-cijena'); ?></th>
+                    <th scope="row"><?php echo esc_html__('Prikaz bazne cijene', 'sidrena-cijena'); ?></th>
                     <td>
                         <label>
                             <input type="checkbox" name="<?php echo esc_attr(Config::DISPLAY_ENABLED_OPTION); ?>" value="1" <?php checked($enabled, 'yes'); ?> />
-                            <?php echo esc_html__('Prikaži sidrenu cijenu uz trenutačnu cijenu na cijeloj web stranici', 'sidrena-cijena'); ?>
+                            <?php echo esc_html__('Prikaži baznu cijenu uz važeću cijenu proizvoda', 'sidrena-cijena'); ?>
                         </label>
                         <p class="description">
                             <?php
                             printf(
                                 /* translators: %s: reference date */
-                                esc_html__('Kad je uključeno, sidrena cijena (na dan %s) prikazuje se ispod redovne cijene svugdje gdje WooCommerce prikazuje cijenu proizvoda. Sam iznos unosite po proizvodu u Products → uredi proizvod → tab General.', 'sidrena-cijena'),
+                                esc_html__('Kada je ova mogućnost uključena, uz cijenu proizvoda prikazuje se i bazna cijena. Zadani je referentni datum %s. Iznos unesite na stranici proizvoda u kartici Općenito. Prikaz provjerite u temi koju koristite.', 'sidrena-cijena'),
                                 esc_html((new DateTimeImmutable(sidrena_cijena_base_date(null)))->format('d.m.Y.'))
                             );
                             ?>
@@ -654,7 +654,7 @@ function sidrena_cijena_render_tab_content() {
                     </th>
                     <td>
                         <input type="text" id="sidrena-cijena-label" name="<?php echo esc_attr(Config::LABEL_OPTION); ?>" value="<?php echo esc_attr($label); ?>" class="regular-text" />
-                        <p class="description"><?php echo esc_html__('Koristite {datum} za datum proizvoda, npr. Bazna cijena na dan {datum}. Povijesni datum ne mijenja se svaki dan.', 'sidrena-cijena'); ?></p>
+                        <p class="description"><?php echo esc_html__('Upišite oznaku koja će stajati uz iznos, primjerice Bazna cijena na dan {datum}. Dodatak će oznaku {datum} zamijeniti referentnim datumom proizvoda. Taj se datum ne mijenja svakodnevno.', 'sidrena-cijena'); ?></p>
                     </td>
                 </tr>
                 <tr>
@@ -664,7 +664,7 @@ function sidrena_cijena_render_tab_content() {
                             <option value="2026-09-10" <?php selected(get_option(Config::BASE_DATE_OPTION, '2026-09-10'), '2026-09-10'); ?>>10.09.2026. — ostala roba i usluge</option>
                             <option value="2025-05-02" <?php selected(get_option(Config::BASE_DATE_OPTION, '2026-09-10'), '2025-05-02'); ?>>02.05.2025. — hrana, piće, kozmetika, čišćenje, toaletne potrepštine i kućanstvo</option>
                         </select>
-                        <p class="description">Za mješoviti asortiman i novu ponudu datum uredite na proizvodu u Inventaru ili na varijaciji. Ne unosi se današnji datum osim ako je to datum prvog nuđenja.</p>
+                        <p class="description">Ako se referentni datum razlikuje od zadanoga, unesite ga u kartici Inventar proizvoda ili u postavkama varijacije. Za novi proizvod unesite datum kada je prvi put ponuđen kupcima.</p>
                     </td>
                 </tr>
                 <tr>
@@ -681,7 +681,7 @@ function sidrena_cijena_render_tab_content() {
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="sidrena-cijena-font-weight"><?php echo esc_html__('Debljina fonta', 'sidrena-cijena'); ?></label>
+                        <label for="sidrena-cijena-font-weight"><?php echo esc_html__('Debljina slova', 'sidrena-cijena'); ?></label>
                     </th>
                     <td>
                         <select id="sidrena-cijena-font-weight" name="<?php echo esc_attr(Config::FONT_WEIGHT_OPTION); ?>">
@@ -693,7 +693,7 @@ function sidrena_cijena_render_tab_content() {
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="sidrena-cijena-font-style"><?php echo esc_html__('Stil fonta', 'sidrena-cijena'); ?></label>
+                        <label for="sidrena-cijena-font-style"><?php echo esc_html__('Stil slova', 'sidrena-cijena'); ?></label>
                     </th>
                     <td>
                         <select id="sidrena-cijena-font-style" name="<?php echo esc_attr(Config::FONT_STYLE_OPTION); ?>">
@@ -709,7 +709,7 @@ function sidrena_cijena_render_tab_content() {
                     </th>
                     <td>
                         <input type="number" id="sidrena-cijena-font-size" name="<?php echo esc_attr(Config::FONT_SIZE_OPTION); ?>" value="<?php echo esc_attr($font_size); ?>" min="8" max="32" step="1" class="small-text" /> px
-                        <p class="description"><?php echo esc_html__('Veličina fonta teksta sidrene cijene na desktop ekranima, u pikselima (8-32).', 'sidrena-cijena'); ?></p>
+                        <p class="description"><?php echo esc_html__('Veličina teksta bazne cijene na računalima, od 8 do 32 piksela.', 'sidrena-cijena'); ?></p>
                     </td>
                 </tr>
                 <tr>
@@ -722,7 +722,7 @@ function sidrena_cijena_render_tab_content() {
                             <?php
                             printf(
                                 /* translators: %d: breakpoint in pixels */
-                                esc_html__('Veličina fonta na ekranima širine do %d px (mobiteli i manji tableti). Iznad te širine koristi se desktop veličina.', 'sidrena-cijena'),
+                                esc_html__('Veličina teksta na zaslonima širine do %d piksela, primjerice na mobitelima i manjim tabletima. Na širim zaslonima primjenjuje se veličina za računala.', 'sidrena-cijena'),
                                 (int) Config::MOBILE_BREAKPOINT
                             );
                             ?>
@@ -740,7 +740,7 @@ function sidrena_cijena_render_tab_content() {
                 <tr>
                     <th scope="row"><?php echo esc_html__('Pregled', 'sidrena-cijena'); ?></th>
                     <td>
-                        <p class="description" style="margin-top:0;"><?php echo esc_html__('Desktop', 'sidrena-cijena'); ?></p>
+                        <p class="description" style="margin-top:0;"><?php echo esc_html__('Računalo', 'sidrena-cijena'); ?></p>
                         <div style="background:#fff;border:1px solid #dcdcde;padding:16px;max-width:400px;margin-bottom:12px;">
                             <div style="font-size:16px;color:#333;">189,00 €</div>
                             <span id="sidrena-cijena-preview"></span>
@@ -753,11 +753,11 @@ function sidrena_cijena_render_tab_content() {
                     </td>
                 </tr>
             </table>
-            <p><label><input type="checkbox" name="sidrena_cijena_review_confirm" value="1" /> Provjerio/la sam povijesne iznose, datume i poreznu osnovu prema evidenciji (uklanja podsjetnik za nadogradnju).</label></p>
+            <p><label><input type="checkbox" name="sidrena_cijena_review_confirm" value="1" /> Potvrđujem da su povijesni iznosi, referentni datumi i porezna osnova provjereni prema evidenciji. Nakon potvrde podsjetnik za nadogradnju više se neće prikazivati.</label></p>
             <?php submit_button(__('Spremi promjene', 'sidrena-cijena'), 'primary', 'sidrena_cijena_save'); ?>
         </form>
 
-        <div class="notice notice-warning inline"><p><?php echo esc_html__('Postojeći iznosi su sačuvani. Ranije automatski kopirane cijene provjerite prema evidenciji. Za referentni dan pod sniženjem primijenite čl. 3. Pravilnika: za skupinu 2.5.2025. najnižu cijenu 30 dana prije početka sniženja, a za ostalu robu/usluge prethodno primijenjenu redovnu cijenu. Prazni iznosi više se ne popunjavaju automatski.', 'sidrena-cijena'); ?></p></div>
+        <div class="notice notice-warning inline"><p><?php echo esc_html__('Postojeći iznosi ostaju sačuvani. Provjerite cijene koje je ranija verzija dodatka automatski unijela. Ako je na referentni dan vrijedilo sniženje, primijenite članak 3. pravilnika: za skupinu robe s datumom 2. svibnja 2025. uzima se najniža cijena u 30 dana prije početka sniženja, a za ostalu robu i usluge prethodno primijenjena redovna cijena. Prazna polja više se ne popunjavaju automatski.', 'sidrena-cijena'); ?></p></div>
     <?php
 }
 
@@ -830,21 +830,22 @@ function sidrena_cijena_render_help_tab() {
     if (!current_user_can('manage_woocommerce')) { return; }
     ?>
     <h2>Bazne cijene i cjenik — NN 132/2026</h2>
-    <p>Naziv dodatka ostaje Sidrena Cijena i Cjenik. Potrošaču se prikazuje prilagodljiva oznaka bazne cijene s datumom proizvoda.</p>
+    <p>Ovdje su upute za unos baznih cijena te za izradu i objavu cjenika. Naziv dodatka ostaje Sidrena Cijena i Cjenik.</p>
     <ol>
-        <li>U kartici Sidrena cijena odaberite zadani datum prema asortimanu. Za mješoviti asortiman i novu ponudu na proizvodu u Inventaru unesite drugi datum. Varijacije mogu imati zaseban datum i iznos.</li>
-        <li>Bazni iznos unesite prema evidenciji, u istoj poreznoj osnovi kao WooCommerce cijene. Današnja cijena i datum izmjene proizvoda nisu dokaz povijesnog iznosa. Postojeći podaci ostaju sačuvani, uključujući ranije automatski unesene vrijednosti koje treba provjeriti.</li>
-        <li>Za sniženje na referentni dan provjerite čl. 3. pravilnika: pravila nisu ista za skupinu 2.5.2025. i ostalu robu/usluge. Dodatak ne rekonstruira povijest cijena niti prepoznaje pravnu kategoriju proizvoda.</li>
-        <li>U Cjeniku unesite OIB pravne osobe ili matični broj trgovca fizičke osobe, vrstu i oznaku prodajnog mjesta, adresu i broj pohrane. Odaberite robu ili usluge. Jedan cjenik vrijedi za jednu takvu vrstu ponude; prije izvoza izostavite stavke koje ne pripadaju odabranoj vrsti.</li>
-        <li>Za robu unesite jedinicu i neto količinu. Za robu s obveznom jediničnom cijenom označite pripadajuće polje. Za g/ml izračun je po kg/L. Neto količina nije transportna težina. Provjerite PDV i poreznu klasu svakog proizvoda.</li>
-        <li>Izmijenjeni cjenik objavite do 11:00 na dan izmjene; promjene nakon toga objavite odmah. Dodatak pokušava objavu po završetku spremanja te ima WP-Cron ponovni pokušaj. Postavite poslužiteljski cron, nadzirite zadnju pogrešku i provjerite javne datoteke.</li>
-        <li>Javnu poveznicu postavite pomoću <code>[sidrena_cjenik format="oba" arhiva="da"]</code>. Oba formata koriste isti redoslijed podataka; CSV koristi UTF-8 i točku-zarez. Ranije objavljeni cjenici dostupni su najmanje 15 dana od zamjene.</li>
-        <li>Isključivanje proizvoda u Inventaru ili brzom uređivanju koristite samo za opravdane iznimke. Skriveni proizvod nije automatski zakonski izuzet.</li>
+        <li>U kartici Bazna cijena odaberite zadani referentni datum prema vrsti robe ili usluge. Ako je proizvod prvi put ponuđen nakon tog datuma, u njegovoj kartici Inventar unesite datum prvog nuđenja. Svaka varijacija može imati zaseban datum i iznos.</li>
+        <li>Baznu cijenu unesite prema vlastitoj evidenciji, na istoj poreznoj osnovi kao ostale cijene u WooCommerceu. Aktualna cijena i datum uređivanja proizvoda ne potvrđuju povijesnu cijenu. Provjerite i iznose koje je ranija verzija dodatka automatski unijela.</li>
+        <li>Ako je proizvod na referentni dan bio snižen, provjerite članak 3. pravilnika. Pravila se razlikuju za skupinu robe s referentnim datumom 2. svibnja 2025. i za ostalu robu i usluge. Dodatak ne može rekonstruirati povijest cijena ni utvrditi koja se pravila primjenjuju na pojedini proizvod.</li>
+        <li>U kartici Cjenik unesite OIB pravne osobe ili matični broj trgovca fizičke osobe, podatke o prodajnom mjestu i broj pohrane. Odaberite izrađujete li cjenik robe ili usluga. Prije izrade izostavite stavke koje ne pripadaju odabranoj vrsti cjenika.</li>
+        <li>Za robu unesite neto količinu i jedinicu mjere. Ako je isticanje cijene za jedinicu mjere obvezno, označite odgovarajuće polje. Količine izražene u gramima i mililitrima pri izračunu cijene preračunavaju se u kilograme i litre. Ne unosi se masa pošiljke. Provjerite porezni razred svakog proizvoda.</li>
+        <li>Izmijenjeni cjenik objavite do 11 sati na dan izmjene. Kasnije promjene objavite odmah. Dodatak pokušava izraditi cjenik nakon spremanja proizvoda, a u slučaju neuspjeha ponovno pokušava putem sustava WP-Cron. Postavite i zakazani zadatak na poslužitelju te pratite poruke o pogreškama.</li>
+        <li>Za poveznicu u podnožju upotrijebite <code>[sidrena_cjenik tekst="Preuzmi cjenik" azurirano="ne"]</code>. Za arhivu na zasebnoj javnoj stranici upotrijebite <code>[sidrena_cjenik_arhiva]</code> i na tu stranicu dodajte poveznicu iz izbornika ili podnožja. Ostale primjere pronaći ćete u kartici Cjenik.</li>
+        <li>Za zajednički prikaz preuzimanja i arhive upotrijebite <code>[sidrena_cjenik format="oba" arhiva="da"]</code>. Arhivski cjenici dostupni su najmanje 15 dana od zamjene. Cjenik možete preuzeti u formatu CSV ili XML.</li>
+        <li>Proizvod izostavite iz cjenika samo ako za to postoji opravdan razlog. To što je proizvod skriven u katalogu ne znači da je izuzet od zakonske obveze.</li>
     </ol>
     <p><a href="https://narodne-novine.nn.hr/eli/sluzbeni/2026/132/pdf" target="_blank" rel="noopener noreferrer">Službeni pravilnici — NN 132/2026, str. 5–7</a></p>
     <h3>Dijagnostika</h3>
-    <p>Verzija: <?php echo esc_html(Config::VERSION); ?>. Zadnja pogreška: <?php echo esc_html(get_option(CJENIK_LAST_ERROR_OPTION, '') ?: 'Nema zabilježene pogreške'); ?></p>
-    <p>Ako javna poveznica vraća 404, generirajte cjenik i spremite Postavke → Stalne veze. Izuzmite cjenik iz predmemorije i zaštita koje blokiraju automatizirano preuzimanje.</p>
-    <p>Potrebna je provjera stvarne trgovine, teme, prilagođenih cijena i iznimaka. Dodatak ne jamči pravnu usklađenost.</p>
+    <p>Verzija: <?php echo esc_html(Config::VERSION); ?>. Posljednja pogreška: <?php echo esc_html(get_option(CJENIK_LAST_ERROR_OPTION, '') ?: 'Nema zabilježene pogreške'); ?></p>
+    <p>Ako se pri otvaranju poveznice pojavljuje pogreška 404, najprije izradite cjenik. Zatim otvorite Postavke → Stalne veze i spremite postavke. Provjerite sprječavaju li predmemorija ili sigurnosna zaštita preuzimanje ažuriranog cjenika.</p>
+    <p>Prije objave provjerite rad dodatka u svojoj trgovini, osobito prikaz u temi i ponašanje dodataka koji mijenjaju cijene. Dodatak je tehnička pomoć i ne jamči pravnu usklađenost trgovine.</p>
     <?php
 }

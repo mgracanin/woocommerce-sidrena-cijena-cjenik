@@ -33,7 +33,7 @@ jobs:
         run: node ./tests/static-check.mjs
 
       - name: Run catalog regression checks
-        run: php ./tests/admin-flows.php
+        run: php ./tests/shortcodes.php
 
       - name: Build release package
         shell: pwsh

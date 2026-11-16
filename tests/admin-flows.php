@@ -142,7 +142,7 @@ try {
             $test_options['sidrena_cijena_cjenik_kind'] = $kind;
             ob_start();
             try { cjenik_render_tab_content(); } finally { $settingsHtml = ob_get_clean(); }
-            check(strpos($settingsHtml, '<th>bazna_cijena</th>') !== false, 'The admin preview must render the current base-price schema.');
+            check(strpos($settingsHtml, '<th>Bazna cijena</th>') !== false, 'The admin preview must render the current base-price schema.');
             check(strpos($settingsHtml, '<th>naziv_posebnog_oblika_prodaje</th>') === false, 'The admin preview must not reference removed legacy schema columns.');
         }
     } finally {

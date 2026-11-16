@@ -4,7 +4,7 @@ Tags: woocommerce, cijena, cjenik, csv, hrvatska
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.0.0
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Bazne cijene i javni CSV/XML cjenik prema pravilnicima NN 132/2026.
 
 == Description ==
 
-Naziv dodatka ostaje Sidrena Cijena i Cjenik. Verzija 2.0 uvodi datume po proizvodu i varijaciji, oznaku s {datum}, propisani redoslijed izvoza za robu/usluge, neto količinu, odvojeni EAN, cijene s PDV-om i jedinične cijene.
+Naziv dodatka ostaje Sidrena Cijena i Cjenik. Od verzije 2.0 možete odrediti referentni datum za svaki proizvod i varijaciju te prilagoditi oznaku pomoću zapisa {datum}. Izvoz podržava neto količinu, zasebni EAN kod te maloprodajne cijene s PDV-om i cijene za jedinicu mjere. Roba i usluge izvoze se u odgovarajućem redoslijedu stupaca.
 
 Postojeći iznosi ostaju sačuvani. Ranije automatski kopirane cijene provjerite prema vlastitoj evidenciji. Nepoznate bazne cijene više se ne zamjenjuju aktualnim cijenama. Bez obveznih podataka novo generiranje ne uspijeva, a zadnji cjenik ostaje objavljen.
 
@@ -23,8 +23,10 @@ Postojeći iznosi ostaju sačuvani. Ranije automatski kopirane cijene provjerite
 3. Unesite povijesne iznose u istoj poreznoj osnovi kao WooCommerce cijene; provjerite sniženja na referentni dan prema čl. 3. Pravilnika 1583.
 4. U kartici Cjenik unesite OIB pravne osobe ili matični broj fizičke osobe, podatke prodajnog mjesta, broj pohrane i vrstu robe/usluga.
 5. Dopunite neto količinu, jedinicu mjere i barkodove kada su primjenjivi. Označite obveznu jediničnu cijenu za odgovarajuću robu.
-6. Generirajte cjenik i postavite [sidrena_cjenik format="oba" arhiva="da"] na javnu stranicu.
-7. Provjerite javne datoteke, arhivu i automatizirano preuzimanje. Za pouzdan WP-Cron postavite poslužiteljski cron i nadzirite greške.
+6. Izradite cjenik. Za poveznicu u podnožju upotrijebite [sidrena_cjenik tekst="Preuzmi cjenik" azurirano="ne"].
+7. Arhivu možete objaviti na zasebnoj javnoj stranici pomoću [sidrena_cjenik_arhiva]. Poveznicu na tu stranicu dodajte u podnožje ili izbornik.
+8. Za zajednički prikaz preuzimanja i arhive upotrijebite [sidrena_cjenik format="oba" arhiva="da"].
+9. Provjerite jesu li datoteke i arhiva javno dostupne te dopuštaju li automatizirano preuzimanje. Za pouzdanije izvršavanje sustava WP-Cron postavite zakazani zadatak na poslužitelju i pratite poruke o pogreškama.
 
 == Frequently Asked Questions ==
 
@@ -41,6 +43,15 @@ Pokušaj po završetku zahtjeva koji mijenja proizvod, WP-Cron ponovni pokušaj 
 Ne. Trgovac odgovara za točne povijesne podatke, asortiman, iznimke, poreze i pravodobnu objavu. Potrebna je provjera stvarne trgovine. Detaljne upute i izvori su u README.md repozitorija.
 
 == Changelog ==
+
+= 2.1.0 =
+* Preuzimanje, arhiva i vrijeme ažuriranja mogu se prikazivati odvojeno.
+* Dodani kratki kodovi [sidrena_cjenik_arhiva] i [sidrena_cjenik_azurirano].
+* Kratki kod [sidrena_cjenik] više ne uključuje arhivu prema zadanim postavkama; arhiva="da" ostaje podržana.
+* Dodani parametri azurirano, tekst_csv i tekst_xml te primjeri postavljanja u administraciji.
+* Lektorirani su nazivi polja, upute i poruke. U pregledu podataka prikazuju se razumljivi hrvatski nazivi stupaca; izvozna struktura ostaje ista.
+* Uklonjena su dvostruko prikazana polja barkoda; postojeći podaci ostaju sačuvani.
+
 
 = 2.0.0 =
 * Prilagodba pravilnicima NN 132/2026 od 17.11.2026.; naziv dodatka ostaje isti.

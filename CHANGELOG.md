@@ -2,6 +2,20 @@
 
 Sve značajne promjene projekta bilježe se u ovoj datoteci.
 
+## [2.1.0] - 2026-11-16
+
+### Dodano
+
+- zasebni kratki kodovi za arhivu (`sidrena_cjenik_arhiva`) i vrijeme ažuriranja (`sidrena_cjenik_azurirano`)
+- upravljanje prikazom vremena ažuriranja i zasebnim tekstovima CSV/XML poveznica
+- jasni primjeri postavljanja u podnožje i na zasebnu stranicu u administraciji i README-ju
+
+### Promijenjeno
+
+- kratki kod za preuzimanje više ne prikazuje arhivu prema zadanim postavkama; izričito `arhiva="da"` i dalje je podržano
+- lektorirane upute, nazivi polja i poruke; nazivi stupaca u administraciji odvojeni su od nepromijenjenih izvoznih ključeva
+- uklonjena dvostruko prikazana polja barkoda, uz očuvanje postojećih EAN podataka
+
 ## [2.0.0] - 2026-11-16
 
 ### Promijenjeno

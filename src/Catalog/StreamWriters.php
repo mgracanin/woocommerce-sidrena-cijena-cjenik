@@ -47,7 +47,7 @@ final class CsvStreamWriter
             if (!fflush($this->handle)) {
                 fclose($this->handle);
                 $this->handle = null;
-                throw new \RuntimeException('CSV datoteku nije moguće dovršiti.');
+                throw new \RuntimeException('CSV datoteku nije moguće spremiti do kraja.');
             }
             fclose($this->handle);
             $this->handle = null;
@@ -66,7 +66,7 @@ final class CsvStreamWriter
     private function writeCsv(array $values)
     {
         if (fputcsv($this->handle, $values, $this->delimiter, '"', '') === false) {
-            throw new \RuntimeException('Zapisivanje CSV retka nije uspjelo.');
+            throw new \RuntimeException('Nije uspjelo zapisivanje retka u CSV datoteku.');
         }
     }
 
@@ -134,7 +134,7 @@ final class XmlStreamWriter
         if (!fflush($this->handle)) {
             fclose($this->handle);
             $this->handle = null;
-            throw new \RuntimeException('XML datoteku nije moguće dovršiti.');
+            throw new \RuntimeException('XML datoteku nije moguće spremiti do kraja.');
         }
         fclose($this->handle);
         $this->handle = null;

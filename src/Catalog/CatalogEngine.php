@@ -143,7 +143,7 @@ final class CatalogEngine
     public function generate()
     {
         if (!$this->lock->acquire()) {
-            update_option(CJENIK_LAST_ERROR_OPTION, 'Generiranje cjenika već je u tijeku.', false);
+            update_option(CJENIK_LAST_ERROR_OPTION, 'Izrada cjenika već je u tijeku.', false);
             return false;
         }
 
@@ -182,10 +182,10 @@ final class CatalogEngine
                     throw new \RuntimeException('Nedostaje maloprodajna ili bazna cijena za: ' . $row['naziv'] . '. Dopunite podatke prema evidenciji; zadnji cjenik ostaje objavljen.');
                 }
                 if (cjenik_catalog_kind() === 'roba' && !empty($row['_unit_required']) && ($row['neto_kolicina'] === '' || $row['cijena_po_jedinici'] === '')) {
-                    throw new \RuntimeException('Nedostaje neto količina/jedinična cijena za: ' . $row['naziv']);
+                    throw new \RuntimeException('Nedostaje neto količina ili cijena za jedinicu mjere za proizvod: ' . $row['naziv']);
                 }
                 if (cjenik_catalog_kind() === 'roba' && $row['neto_kolicina'] !== '' && (!is_numeric($row['neto_kolicina']) || (float) $row['neto_kolicina'] <= 0)) {
-                    throw new \RuntimeException('Neto količina mora biti pozitivan broj za: ' . $row['naziv']);
+                    throw new \RuntimeException('Neto količina mora biti pozitivan broj. Provjerite proizvod: ' . $row['naziv']);
                 }
                 foreach ($writers as $writer) {
                     $writer->writeRow($row);
@@ -193,7 +193,7 @@ final class CatalogEngine
                 $rowCount++;
                 if ($rowCount % self::PAGE_SIZE === 0 || time() - $lastLockRefresh >= 60) {
                     if (!$this->lock->refresh()) {
-                        throw new \RuntimeException('Generiranje je izgubilo vlasništvo nad zaključavanjem.');
+                        throw new \RuntimeException('Izrada cjenika prekinuta je jer se više ne može potvrditi isključivi pristup podacima. Pokušajte ponovno.');
                     }
                     $lastLockRefresh = time();
                 }
@@ -283,7 +283,7 @@ final class CatalogEngine
     private function assertWooCommerceAvailable()
     {
         if (!class_exists('WooCommerce') || !function_exists('wc_get_products') || !function_exists('wc_get_product')) {
-            throw new \RuntimeException('WooCommerce nije dostupan; zadnji ispravni cjenik ostaje objavljen.');
+            throw new \RuntimeException('WooCommerce nije dostupan. Prethodni važeći cjenik ostaje objavljen.');
         }
     }
 
@@ -291,7 +291,7 @@ final class CatalogEngine
     {
         $path = tempnam($directory, '.sidrena-');
         if ($path === false) {
-            throw new \RuntimeException('Nije moguće napraviti privremenu datoteku u direktoriju cjenika.');
+            throw new \RuntimeException('Nije moguće stvoriti privremenu datoteku u mapi cjenika.');
         }
         return $path;
     }
@@ -326,7 +326,7 @@ final class CatalogEngine
                                 @unlink($backup);
                             }
                         }
-                        throw new \RuntimeException('Atomska objava cjenika nije uspjela.');
+                        throw new \RuntimeException('Nova datoteka cjenika nije uspješno objavljena. Provjerite pristup datotekama i pokušajte ponovno.');
                     }
                 }
 
