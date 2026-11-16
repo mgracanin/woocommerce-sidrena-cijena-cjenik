@@ -115,6 +115,13 @@ $test_prices_include_tax = false;
 check(cjenik_gross_price($item, '') === '', 'Missing prices must not be converted to zero.');
 
 $expectedGoods = array('naziv', 'sifra_proizvoda', 'brend', 'neto_kolicina', 'jedinica_mjere', 'maloprodajna_cijena', 'poseban_oblik_prodaje', 'cijena_po_jedinici', 'barkod', 'ean', 'bazna_cijena');
+$barcodeItem = new CatalogTestProduct(309);
+$barcodeItem->meta['_barcode'] = 'ABC';
+$barcodeRow = cjenik_build_row($barcodeItem);
+check($barcodeRow['barkod'] === 'ABC' && $barcodeRow['ean'] === '', 'A generic legacy barcode must not masquerade as an EAN.');
+$barcodeItem->meta['_ean'] = '0012345678901';
+$barcodeRow = cjenik_build_row($barcodeItem);
+check($barcodeRow['barkod'] === 'ABC' && $barcodeRow['ean'] === '0012345678901', 'Legacy generic and EAN barcodes must remain separate and preserve leading zeroes.');
 check(CatalogEngine::columns() === $expectedGoods, 'Goods exports must follow the prescribed column order without legacy extra columns.');
 $test_options['sidrena_cijena_cjenik_kind'] = 'usluge';
 check(CatalogEngine::columns() === array('naziv', 'maloprodajna_cijena', 'poseban_oblik_prodaje', 'bazna_cijena'), 'Services need the prescribed separate schema.');

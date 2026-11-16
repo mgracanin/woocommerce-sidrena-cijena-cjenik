@@ -360,8 +360,34 @@ function sidrena_cijena_clear_anchor_range_cache($product_id) {
     }
 }
 
+function sidrena_cijena_variable_base_html($product) {
+    $lines = array();
+    foreach ($product->get_children() as $id) {
+        $variation = wc_get_product($id);
+        if (!$variation || $variation->get_status() !== 'publish' || sidrena_cijena_base_exempt($variation, $product)) { continue; }
+        $value = sidrena_cijena_base_value($variation, $product);
+        if ($value === '') { continue; }
+        $label = sidrena_cijena_label($variation, $product);
+        $price = cjenik_gross_price($variation, $value);
+        $lines[] = array('name' => $variation->get_name(), 'label' => $label, 'price' => $price);
+    }
+    if (!$lines) { return ''; }
+    // Only collapse identical values and labels. Otherwise name each variation
+    // so a date or amount cannot be mistaken for another variant's base price.
+    $unique = array_unique(array_map(function ($line) { return $line['label'] . '|' . $line['price']; }, $lines));
+    if (count($unique) === 1 && count($lines) === count($product->get_children())) {
+        return sidrena_cijena_build_formatted_line(wc_price($lines[0]['price']), $lines[0]['label']);
+    }
+    $html = '';
+    foreach ($lines as $line) {
+        $html .= sidrena_cijena_build_formatted_line(wc_price($line['price']), $line['name'] . ' — ' . $line['label']);
+    }
+    return $html;
+}
+
 function sidrena_cijena_append_to_price_html($price_html, $product) {
-    if (empty($price_html) || get_option(Config::DISPLAY_ENABLED_OPTION, 'yes') !== 'yes' || $product->is_type('grouped') || $product->is_type('variable')) { return $price_html; }
+    if (empty($price_html) || get_option(Config::DISPLAY_ENABLED_OPTION, 'yes') !== 'yes' || $product->is_type('grouped')) { return $price_html; }
+    if ($product->is_type('variable')) { return $price_html . sidrena_cijena_variable_base_html($product); }
     $parent = $product->get_parent_id() ? wc_get_product($product->get_parent_id()) : null;
     if (sidrena_cijena_base_exempt($product, $parent)) { return $price_html; }
     $value = sidrena_cijena_base_value($product, $parent);

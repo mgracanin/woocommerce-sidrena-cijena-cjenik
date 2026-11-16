@@ -50,6 +50,37 @@ check(substr_count($variationData['price_html'], 'class="sidrena-cijena"') === 1
 $variationData = sidrena_cijena_variation_price_html($variationData, $products[401], $products[402]);
 check(substr_count($variationData['price_html'], 'class="sidrena-cijena"') === 1, 'Filtering variation HTML again must not duplicate the base price.');
 
+$previousProducts = $products;
+$products = array(
+    500 => new CatalogTestProduct(500, 'variable', '', array(501, 502, 503, 504, 505)),
+    501 => new CatalogTestProduct(501, 'variation', '8.00'),
+    502 => new CatalogTestProduct(502, 'variation', '9.00'),
+    503 => new CatalogTestProduct(503, 'variation', '7.00'),
+    504 => new CatalogTestProduct(504, 'variation', '6.00'),
+    505 => new CatalogTestProduct(505, 'variation', '5.00', array(), '', 'visible', 'draft'),
+);
+$products[500]->meta['_anchor_price'] = '999.00'; // Never substitute a parent's value.
+$products[500]->meta['_base_price_date'] = '2025-05-02';
+$products[501]->meta['_anchor_price'] = '11.00';
+$products[502]->meta['_anchor_price'] = '12.00';
+$products[502]->meta['_base_price_date'] = '2026-11-15';
+$products[504]->meta['_anchor_price'] = '15.00';
+$products[504]->meta['_base_price_exempt'] = 'yes';
+$products[505]->meta['_anchor_price'] = '16.00';
+$parentHtml = sidrena_cijena_append_to_price_html('8.00 - 9.00 EUR', $products[500]);
+check(strpos($parentHtml, 'Product 501 — Bazna cijena na dan 02.05.2025.: 11.00 EUR') !== false, 'Before selection, each differing variation must identify its own inherited date and base price.');
+check(strpos($parentHtml, 'Product 502 — Bazna cijena na dan 15.11.2026.: 12.00 EUR') !== false, 'Before selection, a variation-specific date must not be replaced by the parent date.');
+check(substr_count($parentHtml, 'class="sidrena-cijena"') === 2, 'Missing, exempt and unpublished children must not create parent base-price lines.');
+check(strpos($parentHtml, '999.00') === false && strpos($parentHtml, 'Product 503') === false && strpos($parentHtml, 'Product 504') === false && strpos($parentHtml, 'Product 505') === false, 'Unknown prices must not be invented and exempt/unpublished children must be skipped.');
+$products[500] = new CatalogTestProduct(500, 'variable', '', array(501, 502));
+$products[501]->meta['_base_price_date'] = $products[502]->meta['_base_price_date'] = '2026-09-10';
+$products[501]->meta['_anchor_price'] = $products[502]->meta['_anchor_price'] = '12.00';
+$parentHtml = sidrena_cijena_append_to_price_html('8.00 - 9.00 EUR', $products[500]);
+check(substr_count($parentHtml, 'class="sidrena-cijena"') === 1 && strpos($parentHtml, '12.00 EUR') !== false, 'Complete identical variation bases and dates may collapse to one clear line.');
+unset($products[501]->meta['_anchor_price'], $products[502]->meta['_anchor_price']);
+check(sidrena_cijena_append_to_price_html('8.00 - 9.00 EUR', $products[500]) === '8.00 - 9.00 EUR', 'A variable product with no known child bases must not manufacture a base from current prices.');
+$products = $previousProducts;
+
 $test_rendered_fields = array();
 $test_options['sidrena_cijena_base_date'] = '2025-05-02';
 sidrena_cijena_add_field();

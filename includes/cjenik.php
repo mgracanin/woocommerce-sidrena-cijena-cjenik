@@ -307,7 +307,7 @@ function cjenik_get_brand_names($product, $parent = null) {
 function cjenik_get_barcode($product, $parent = null) {
     $keys = apply_filters(
         'sidrena_cijena_cjenik_barcode_meta_keys',
-        array(CJENIK_BARCODE_META_KEY, '_global_unique_id', '_ean', '_barcode', '_alg_ean')
+        array(CJENIK_BARCODE_META_KEY, '_global_unique_id', '_ean', '_alg_ean')
     );
 
     foreach ($keys as $key) {
@@ -338,7 +338,7 @@ function cjenik_build_row($product, $parent = null) {
         'maloprodajna_cijena' => $gross,
         'poseban_oblik_prodaje' => $product->is_on_sale() ? 'DA' : 'NE',
         'cijena_po_jedinici' => apply_filters('sidrena_cijena_cjenik_unit_price', cjenik_unit_price($gross, $quantity, $unit), $product, $parent, $unit),
-        'barkod' => cjenik_get_inherited_meta($product, $parent, '_cjenik_general_barcode'),
+        'barkod' => cjenik_get_inherited_meta($product, $parent, '_cjenik_general_barcode', cjenik_get_inherited_meta($product, $parent, '_barcode')),
         'ean' => $ean,
         'bazna_cijena' => cjenik_gross_price($product, $base),
         '_anchor_is_stored' => $base !== '',

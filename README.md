@@ -33,7 +33,7 @@ Za sniženje na referentni dan primjenjuje se čl. 3. Pravilnika 1583: za skupin
 
 Prazan povijesni iznos više se ne kopira iz današnje cijene i ne prikazuje se kao poznata bazna cijena. Postojeći vlastiti tekst oznake ostaje sačuvan. Samo raniji zadani tekst prelazi na **Bazna cijena na dan {datum}**; oznaku možete proizvoljno preimenovati, uz očuvanje jasnoće.
 
-Varijabilni i grouped roditelji nisu zasebni retci cjenika. Varijacije i podproizvodi izvoze se zasebno. Na stranici varijabilnog proizvoda bazna cijena prikazuje se nakon odabira varijacije, kako se ne bi miješali različiti datumi i iznosi.
+Varijabilni i grouped roditelji nisu zasebni retci cjenika. Varijacije i podproizvodi izvoze se zasebno. Bazne cijene varijabilnog proizvoda vidljive su i prije odabira varijacije. Isti iznos i oznaka mogu se objediniti; različiti datumi/iznosi navode se uz naziv varijacije. Nakon odabira prikazuje se točan datum i iznos odabrane varijacije.
 
 ## Neto količina i porezi
 
