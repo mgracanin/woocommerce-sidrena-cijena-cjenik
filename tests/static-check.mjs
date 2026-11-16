@@ -107,10 +107,10 @@ const readme = fs.readFileSync(path.join(root, 'readme.txt'), 'utf8');
 
 assert(main.indexOf("'src/Config.php'") < main.indexOf("'includes/cjenik.php'"), 'Config must be loaded before cjenik.php');
 assert(main.includes('Config::registerLegacyConstants()'), 'Legacy constant compatibility registration is missing');
-assert(main.includes('* Version: 2.1.0'), 'Plugin header version is not 2.1.0');
+assert(main.includes('* Version: 2.1.1'), 'Plugin header version is not 2.1.1');
 assert(main.includes('* Author: Matija Gračanin'), 'Plugin author is not Matija Gračanin');
 assert(main.includes('* Author Email: matijag@gmail.com'), 'Plugin author email is missing');
-assert(readme.includes('Stable tag: 2.1.0'), 'Readme stable tag is not 2.1.0');
+assert(readme.includes('Stable tag: 2.1.1'), 'Readme stable tag is not 2.1.1');
 assert(catalogRuntime.includes('namespace SidrenaCijenaCjenik'), 'Neutral plugin namespace is missing');
 assert(!allRuntime.includes('MatijaGracanin\\SidrenaCijena'), 'Legacy personal namespace is still present');
 assert(main.includes("'pomoc'           => __('Pomoć'"), 'Help tab navigation is missing');

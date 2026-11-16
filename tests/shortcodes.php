@@ -28,6 +28,9 @@ try {
     check(strpos(cjenik_download_shortcode(array('tekst' => '<script>alert(1)</script>')), '<script>') === false, 'Custom link text must be escaped.');
     check(strpos(cjenik_updated_shortcode(array('tekst' => '<script>')), '<script>') === false, 'Custom timestamp text must be escaped.');
     check(substr_count(cjenik_archive_shortcode(array('format' => 'xml')), '<details') === 1, 'An archive page can show XML alone.');
+    check(strpos(cjenik_archive_shortcode(array()), ' open') === false, 'Standalone archives must start collapsed.');
+    check(substr_count(cjenik_archive_shortcode(array('otvoreno' => 'da')), ' open') === 2, 'Both archive sections can explicitly start expanded.');
+    check(strpos(cjenik_archive_shortcode(array('otvoreno' => 'ne')), ' open') === false, 'An explicit collapsed archive remains closed.');
     unlink($directory . '/cjenik_test.csv');
     unlink($directory . '/cjenik_test.xml');
     check(strpos(cjenik_archive_shortcode(array()), 'Arhiva trenutačno nije dostupna.') !== false, 'Empty standalone archive has a clear message.');

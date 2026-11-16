@@ -5,9 +5,9 @@
 
 Besplatan WordPress dodatak za bazne cijene i javni CSV/XML cjenik. Naziv dodatka ostaje **Sidrena Cijena i Cjenik**.
 
-## Verzija 2.1.0 — zasebna arhiva i jasnije korisničko sučelje
+## Verzija 2.1.1 — sklopiva arhiva cjenika
 
-**[Preuzmi instalacijski ZIP 2.1.0](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/download/v2.1.0/sidrena-cijena-v2.1.0.zip)** · [Bilješke izdanja](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/tag/v2.1.0)
+**[Preuzmi instalacijski ZIP 2.1.1](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/download/v2.1.1/sidrena-cijena-v2.1.1.zip)** · [Bilješke izdanja](https://github.com/mgracanin/woocommerce-sidrena-cijena-cjenik/releases/tag/v2.1.1)
 
 Ova verzija mijenja strukturu izvoza. Integracije koje čitaju CSV/XML treba prilagoditi prije nadogradnje. Nakon provjere postojećih iznosa, datuma i novih postavki ponovno generirajte cjenik.
 
@@ -55,6 +55,24 @@ Preuzimanje, arhivu i vrijeme ažuriranja možete postaviti odvojeno na stranice
 Za odvojenu arhivu izradite javnu stranicu, primjerice **Arhiva cjenika**, dodajte `[sidrena_cjenik_arhiva]` te poveznicu na tu stranicu postavite u podnožje ili izbornik. Naziv i adresu stranice birate sami; dodatak ne stvara stranicu automatski. Arhiva mora ostati javno dostupna.
 
 **Promjena u odnosu na 2.0.0:** `[sidrena_cjenik tekst="Preuzmi cjenik"]` više ne prikazuje arhivu. Vrijeme ažuriranja ostaje uključeno, a može se sakriti parametrom `azurirano="ne"`. Izričito navedeni `arhiva="da"` i dalje radi. Stalne CSV/XML adrese služe izravnom preuzimanju važećih datoteka i ne prikazuju arhivu.
+
+### Prikaz i oblikovanje arhive
+
+`[sidrena_cjenik_arhiva]` prema zadanim postavkama prikazuje zatvorene odjeljke. Odabirom naslova otvara se popis svih datoteka odabranog formata. Ako želite početno otvoren popis, upotrijebite `[sidrena_cjenik_arhiva otvoreno="da"]`. Parametar se može kombinirati s `format="csv"`, `format="xml"` ili `format="oba"`.
+
+Arhiva koristi izvorne HTML elemente `details` i `summary`, dostupne mišem i tipkovnicom, bez dodatnog JavaScripta. Tema može oblikovati klase `.sidrena-cjenik-archive`, `.sidrena-cjenik-archive-title`, `.sidrena-cjenik-archive-list`, `.sidrena-cjenik-archive-item` i `.sidrena-cjenik-archive-link`. Za pojedini format dostupne su i klase `.sidrena-cjenik-archive-csv` i `.sidrena-cjenik-archive-xml`.
+
+Primjer CSS-a za ograničavanje visine otvorenog popisa, uz pomicanje kroz datoteke:
+
+```css
+.sidrena-cjenik-archive-list {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.sidrena-cjenik-archive-title {
+  cursor: pointer;
+}
+```
 
 ## Neto količina i porezi
 

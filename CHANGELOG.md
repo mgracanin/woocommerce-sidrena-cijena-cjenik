@@ -2,6 +2,12 @@
 
 Sve značajne promjene projekta bilježe se u ovoj datoteci.
 
+## [2.1.1] - 2026-11-16
+
+- zasebna arhiva zadano je zatvorena; `otvoreno="da"` omogućuje početno otvoren prikaz
+- dodane CSS klase za pojedini format, naslov, popis, stavke i poveznice arhive
+- sve arhivske datoteke ostaju dostupne nakon otvaranja popisa
+
 ## [2.1.0] - 2026-11-16
 
 ### Dodano

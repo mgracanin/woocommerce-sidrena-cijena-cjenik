@@ -786,10 +786,10 @@ function cjenik_archive_html($formats, $expanded = false) {
         if (!in_array($format, array('csv', 'xml'), true)) { continue; }
         $archives = cjenik_get_archive_files($format);
         if (!$archives) { continue; }
-        $html .= '<details class="sidrena-cjenik-archive"' . ($expanded ? ' open' : '') . '><summary>' . esc_html(sprintf(__('Arhiva cjenika u formatu %s', 'sidrena-cijena'), strtoupper($format))) . '</summary><ul>';
+        $html .= '<details class="sidrena-cjenik-archive sidrena-cjenik-archive-' . esc_attr($format) . '"' . ($expanded ? ' open' : '') . '><summary class="sidrena-cjenik-archive-title">' . esc_html(sprintf(__('Arhiva cjenika u formatu %s', 'sidrena-cijena'), strtoupper($format))) . '</summary><ul class="sidrena-cjenik-archive-list">';
         foreach ($archives as $file => $modified) {
             $url = trailingslashit($location['url']) . rawurlencode(basename($file));
-            $html .= '<li><a href="' . esc_url($url) . '">' . esc_html(wp_date('d.m.Y. H:i', $modified)) . '</a></li>';
+            $html .= '<li class="sidrena-cjenik-archive-item"><a class="sidrena-cjenik-archive-link" href="' . esc_url($url) . '">' . esc_html(wp_date('d.m.Y. H:i', $modified)) . '</a></li>';
         }
         $html .= '</ul></details>';
     }
@@ -798,10 +798,10 @@ function cjenik_archive_html($formats, $expanded = false) {
 
 add_shortcode('sidrena_cjenik_arhiva', 'cjenik_archive_shortcode');
 function cjenik_archive_shortcode($atts) {
-    $atts = shortcode_atts(array('format' => 'oba'), $atts, 'sidrena_cjenik_arhiva');
+    $atts = shortcode_atts(array('format' => 'oba', 'otvoreno' => 'ne'), $atts, 'sidrena_cjenik_arhiva');
     $format = strtolower(sanitize_key($atts['format']));
     $formats = in_array($format, array('oba', 'both'), true) ? array('csv', 'xml') : array($format);
-    $html = cjenik_archive_html($formats, true);
+    $html = cjenik_archive_html($formats, strtolower(trim($atts['otvoreno'])) === 'da');
     return $html !== '' ? '<div class="sidrena-cjenik-archives">' . $html . '</div>' : '<span class="sidrena-cjenik-nedostupan">' . esc_html__('Arhiva trenutačno nije dostupna.', 'sidrena-cijena') . '</span>';
 }
 
@@ -1225,7 +1225,7 @@ function cjenik_render_tab_content() {
             <tr><td>Samo datum i vrijeme posljednje izrade</td><td><code>[sidrena_cjenik_azurirano]</code></td></tr>
         </tbody>
     </table>
-    <p>Za zasebnu arhivu izradite javnu stranicu, na nju dodajte kratki kod za arhivu, a poveznicu na tu stranicu postavite u izbornik ili podnožje. Kratki kod za preuzimanje prema zadanim postavkama prikazuje datum ažuriranja, ali ne i arhivu. Datum sakrijte parametrom <code>azurirano="ne"</code>. Arhiva treba ostati javno dostupna.</p>
+    <p>Za zasebnu arhivu izradite javnu stranicu, na nju dodajte kratki kod za arhivu, a poveznicu na tu stranicu postavite u izbornik ili podnožje. Kratki kod za preuzimanje prema zadanim postavkama prikazuje datum ažuriranja, ali ne i arhivu. Datum sakrijte parametrom <code>azurirano="ne"</code>. Arhiva treba ostati javno dostupna. Popis je zadano zatvoren; za početno otvoren prikaz dodajte <code>otvoreno="da"</code> kratkom kodu za arhivu.</p>
 
     <form method="post" action="<?php echo esc_url($tab_url); ?>">
         <?php wp_nonce_field('cjenik_generate_now_action', 'cjenik_generate_nonce'); ?>

@@ -4,7 +4,7 @@ Tags: woocommerce, cijena, cjenik, csv, hrvatska
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,12 @@ Pokušaj po završetku zahtjeva koji mijenja proizvod, WP-Cron ponovni pokušaj 
 Ne. Trgovac odgovara za točne povijesne podatke, asortiman, iznimke, poreze i pravodobnu objavu. Potrebna je provjera stvarne trgovine. Detaljne upute i izvori su u README.md repozitorija.
 
 == Changelog ==
+
+= 2.1.1 =
+* Arhiva je prema zadanim postavkama zatvorena; popis datoteka otvara se odabirom naslova.
+* Parametar otvoreno="da" omogućuje početno otvoren popis.
+* Dodane su CSS klase za oblikovanje naslova, popisa i poveznica arhive.
+
 
 = 2.1.0 =
 * Preuzimanje, arhiva i vrijeme ažuriranja mogu se prikazivati odvojeno.
