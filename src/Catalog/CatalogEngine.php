@@ -21,33 +21,15 @@ final class CatalogEngine
 
     public static function columns()
     {
-        return array(
-            'naziv',
-            'sifra_proizvoda',
-            'brend',
-            'jedinica_mjere',
-            'cijena_po_jedinici',
-            'maloprodajna_cijena',
-            'poseban_oblik_prodaje',
-            'naziv_posebnog_oblika_prodaje',
-            'sidrena_cijena',
-            'barkod',
-            'dostupnost',
-        );
+        if (cjenik_catalog_kind() === 'usluge') {
+            return array('naziv', 'maloprodajna_cijena', 'poseban_oblik_prodaje', 'bazna_cijena');
+        }
+        return array('naziv', 'sifra_proizvoda', 'brend', 'neto_kolicina', 'jedinica_mjere', 'maloprodajna_cijena', 'poseban_oblik_prodaje', 'cijena_po_jedinici', 'barkod', 'ean', 'bazna_cijena');
     }
 
     public static function textColumns()
     {
-        return array(
-            'naziv',
-            'sifra_proizvoda',
-            'brend',
-            'jedinica_mjere',
-            'poseban_oblik_prodaje',
-            'naziv_posebnog_oblika_prodaje',
-            'barkod',
-            'dostupnost',
-        );
+        return array('naziv', 'sifra_proizvoda', 'brend', 'jedinica_mjere', 'poseban_oblik_prodaje', 'barkod', 'ean');
     }
 
     public function markDirty()
@@ -79,7 +61,9 @@ final class CatalogEngine
 
             foreach ($ids as $productId) {
                 $product = wc_get_product($productId);
-                if (!$product || !cjenik_product_included($product)) {
+                // A variable parent is only traversed, not exported. A child
+                // can explicitly opt out of an inherited legal exemption.
+                if (!$product || !cjenik_product_included($product, $product->is_type('variable'))) {
                     continue;
                 }
 
@@ -92,7 +76,7 @@ final class CatalogEngine
                 if ($product->is_type('variable')) {
                     foreach ($product->get_children() as $variationId) {
                         $variation = wc_get_product($variationId);
-                        if ($variation && $variation->get_status() === 'publish') {
+                        if ($variation && $variation->get_status() === 'publish' && $variation->get_meta(CJENIK_VISIBILITY_META_KEY, true) !== 'exclude' && !sidrena_cijena_base_exempt($variation, $product)) {
                             yield cjenik_build_row($variation, $product);
                         }
                     }
@@ -127,7 +111,7 @@ final class CatalogEngine
             'missing_sku' => 0,
             'missing_brand' => 0,
             'missing_barcode' => 0,
-            'settings_ok' => !empty($meta['object_type']) && !empty($meta['location_label']) && !empty($meta['storage_number']) && !empty($meta['address']),
+            'settings_ok' => !empty($meta['trader_id']) && !empty($meta['storage_number']) && (!empty($meta['all_locations']) || (!empty($meta['object_type']) && !empty($meta['location_label']) && !empty($meta['address']))),
             'preview' => array(),
         );
 
@@ -145,7 +129,7 @@ final class CatalogEngine
             if ($row['brend'] === '') {
                 $report['missing_brand']++;
             }
-            if ($row['barkod'] === '') {
+            if ($row['barkod'] === '' && $row['ean'] === '') {
                 $report['missing_barcode']++;
             }
             if (count($report['preview']) < $previewLimit) {
@@ -170,6 +154,10 @@ final class CatalogEngine
             $this->assertWooCommerceAvailable();
             $formats = $this->enabledFormats();
             $meta = cjenik_get_meta();
+            cjenik_validate_meta($meta);
+            $meta['sequence'] = (int) get_option('sidrena_cijena_cjenik_sequence', 0) + 1;
+            update_option('sidrena_cijena_cjenik_sequence', $meta['sequence'], false);
+            $previous = get_option(CJENIK_LAST_FILES_OPTION, array());
             $location = cjenik_get_dir();
             $writers = array();
 
@@ -177,7 +165,7 @@ final class CatalogEngine
                 $temporary = $this->temporaryPath($location['path']);
                 $temporaryFiles[] = $temporary;
                 if ($format === 'csv') {
-                    $delimiter = get_option(CJENIK_DELIMITER_OPTION, CJENIK_DEFAULT_DELIMITER);
+                    $delimiter = ';';
                     if (!array_key_exists($delimiter, cjenik_delimiter_choices())) {
                         $delimiter = CJENIK_DEFAULT_DELIMITER;
                     }
@@ -190,6 +178,15 @@ final class CatalogEngine
             $rowCount = 0;
             $lastLockRefresh = time();
             foreach ($this->rows() as $row) {
+                if ($row['maloprodajna_cijena'] === '' || $row['bazna_cijena'] === '' || !is_numeric($row['maloprodajna_cijena']) || !is_numeric($row['bazna_cijena']) || (float) $row['maloprodajna_cijena'] < 0 || (float) $row['bazna_cijena'] < 0) {
+                    throw new \RuntimeException('Nedostaje maloprodajna ili bazna cijena za: ' . $row['naziv'] . '. Dopunite podatke prema evidenciji; zadnji cjenik ostaje objavljen.');
+                }
+                if (cjenik_catalog_kind() === 'roba' && !empty($row['_unit_required']) && ($row['neto_kolicina'] === '' || $row['cijena_po_jedinici'] === '')) {
+                    throw new \RuntimeException('Nedostaje neto količina/jedinična cijena za: ' . $row['naziv']);
+                }
+                if (cjenik_catalog_kind() === 'roba' && $row['neto_kolicina'] !== '' && (!is_numeric($row['neto_kolicina']) || (float) $row['neto_kolicina'] <= 0)) {
+                    throw new \RuntimeException('Neto količina mora biti pozitivan broj za: ' . $row['naziv']);
+                }
                 foreach ($writers as $writer) {
                     $writer->writeRow($row);
                 }
@@ -233,6 +230,11 @@ final class CatalogEngine
             $this->publish($operations);
             $temporaryFiles = array();
 
+            $replaced = get_option('sidrena_cijena_cjenik_replaced_at', array());
+            foreach (array('csv_download_name', 'xml_download_name', 'csv_file', 'xml_file') as $key) {
+                if (!empty($previous[$key]) && $previous[$key] !== ($files[$key] ?? '')) { $replaced[basename($previous[$key])] = time(); }
+            }
+            update_option('sidrena_cijena_cjenik_replaced_at', $replaced, false);
             update_option(CJENIK_LAST_GENERATED_OPTION, time());
             update_option(CJENIK_LAST_FILES_OPTION, $files, false);
             delete_option(CJENIK_LAST_ERROR_OPTION);
@@ -245,6 +247,11 @@ final class CatalogEngine
             cjenik_cleanup_old_files();
             return $files;
         } catch (\Throwable $error) {
+            // Windows cannot remove an open file. Close incomplete writers
+            // before deleting stages; the published catalog is untouched.
+            foreach (isset($writers) ? $writers : array() as $writer) {
+                try { $writer->close(); } catch (\Throwable $closeError) { /* Keep the original failure. */ }
+            }
             foreach ($temporaryFiles as $temporary) {
                 if (is_string($temporary) && is_file($temporary)) {
                     @unlink($temporary);

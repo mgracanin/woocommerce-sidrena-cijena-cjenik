@@ -8,9 +8,11 @@ if (!defined('ABSPATH')) {
 
 final class Config
 {
-    const VERSION = '1.2.4';
+    const VERSION = '2.0.0';
     const REFERENCE_DATE = '10.09.2026.';
     const ANCHOR_META_KEY = '_anchor_price';
+    const BASE_DATE_META_KEY = '_base_price_date';
+    const BASE_DATE_OPTION = 'sidrena_cijena_base_date';
 
     const DISPLAY_ENABLED_OPTION = 'sidrena_cijena_enabled';
     const AUTO_INITIALIZED_OPTION = 'sidrena_cijena_auto_initialized';
@@ -23,7 +25,7 @@ final class Config
     const MOBILE_FONT_SIZE_OPTION = 'sidrena_cijena_font_size_mobile';
 
     const MOBILE_BREAKPOINT = 768;
-    const DEFAULT_LABEL = 'Sidrena cijena na dan 10.09.2026.';
+    const DEFAULT_LABEL = 'Bazna cijena na dan {datum}';
     const DEFAULT_FONT_SIZE = 12;
     const DEFAULT_MOBILE_FONT_SIZE = 11;
     const DEFAULT_FONT_FAMILY = 'inherit';

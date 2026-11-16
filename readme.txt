@@ -1,90 +1,56 @@
-=== Sidrena Cijena i Cjenik | Matija Gračanin ===
-Contributors: matijag
+=== Sidrena Cijena i Cjenik za WooCommerce ===
+Contributors: mgracanin
 Tags: woocommerce, cijena, cjenik, csv, hrvatska
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.2.4
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Prikaz sidrene cijene i javni strojno čitljivi CSV/XML cjenik za WooCommerce prema odlukama NN 101/2026.
-
-Autor: Matija Gračanin (matijag@gmail.com)
+Bazne cijene i javni CSV/XML cjenik prema pravilnicima NN 132/2026.
 
 == Description ==
 
-Dodatak pruža tehničku podršku za dvije povezane obveze koje se primjenjuju od 1. listopada 2026.:
+Naziv dodatka ostaje Sidrena Cijena i Cjenik. Verzija 2.0 uvodi datume po proizvodu i varijaciji, oznaku s {datum}, propisani redoslijed izvoza za robu/usluge, neto količinu, odvojeni EAN, cijene s PDV-om i jedinične cijene.
 
-* prikaz dodatne, odnosno sidrene cijene prema Odluci NN 101/2026, broj 1212,
-* objavu i čuvanje strojno čitljivog cjenika prema Odluci NN 101/2026, broj 1213.
-
-= Sidrena cijena =
-
-* polje na svakom proizvodu i svakoj varijaciji,
-* automatsko početno spremanje trenutačne aktualne cijene ako je polje prazno, bez kasnijeg automatskog prepisivanja,
-* prikaz uz WooCommerce cijenu na proizvodu, trgovini, kategorijama i drugim popisima,
-* Quick Edit i pregled broja proizvoda kojima cijena nedostaje,
-* alat za početno popunjavanje samo praznih polja iz redovne cijene, bez prepisivanja postojećih vrijednosti,
-* prilagodljiv tekst, font, stil, boja i veličina za desktop i mobitel.
-
-Automatsko početno popunjavanje nije zamjena za evidenciju cijena. Današnja redovna cijena ne mora biti cijena koja je vrijedila 10.09.2026. Sve predložene iznose treba provjeriti.
-
-= Cjenik =
-
-* javni CSV i opcionalni XML,
-* stalne javne adrese `/cjenik-proizvoda.csv` i `/cjenik-proizvoda.xml`, pogodne za automatizirane alate,
-* kratki kod `[sidrena_cjenik]` za CSV, `[sidrena_cjenik format="xml"]` za XML i `[sidrena_cjenik format="oba"]` za oba gumba,
-* opcija `arhiva="da"` za javni popis arhive odabranih formata,
-* dnevno generiranje prije 8:00 te odgođeno osvježavanje nakon promjene proizvoda ili zalihe,
-* arhivske datoteke s vrstom objekta, adresom, oznakom objekta, skladištem i vremenskom oznakom,
-* najmanje 30 dana arhive,
-* zasebni stupci za oznaku i naziv posebnog oblika prodaje,
-* podrška za WooCommerce Brands te česte dodatke za brendove i barkodove,
-* pregled spremnosti: nedostajuće cijene, sidrene cijene, šifre, brendovi i barkodovi,
-* email obavijest i prikaz zadnje greške.
-* ugrađeni tab Pomoć s brzim početkom, opisom funkcija, shortcodeovima, dijagnostikom i rješavanjem problema.
-
-Odluka propisuje skup podataka, ali u trenutku izrade ove verzije nije bio objavljen obvezni redoslijed CSV stupaca, razdjelnik ni XML shema. Dodatak zato nudi stabilan, dokumentiran format i filtere za prilagodbu. Ovo je tehnička pomoć, a ne pravni savjet.
-
-= Zahtjevi =
-
-* WordPress s aktivnim WooCommerce dodatkom
-* PHP 7.4 ili noviji
+Postojeći iznosi ostaju sačuvani. Ranije automatski kopirane cijene provjerite prema vlastitoj evidenciji. Nepoznate bazne cijene više se ne zamjenjuju aktualnim cijenama. Bez obveznih podataka novo generiranje ne uspijeva, a zadnji cjenik ostaje objavljen.
 
 == Installation ==
 
-1. U WordPress administraciji otvorite Plugins → Add New Plugin → Upload Plugin.
-2. Odaberite ZIP, instalirajte i aktivirajte dodatak.
-3. Otvorite Sidrena cijena → Sidrena cijena i unesite ili provjerite sidrene cijene.
-4. Otvorite tab Cjenik i unesite vrstu objekta, oznaku objekta i broj skladišta. Adresa se preuzima iz WooCommerce → Settings → General.
-5. Kliknite „Generiraj cjenik sada“ i provjerite stalnu javnu CSV poveznicu u anonimnom prozoru.
-6. Na javnu stranicu umetnite `[sidrena_cjenik]`.
-7. Za pouzdano izvršenje prije 8:00 postavite poslužiteljski cron koji redovito pokreće `wp-cron.php`; ugrađeni WP-Cron ovisi o posjetima stranici.
+1. Instalirajte odgovarajući ZIP iz GitHub Releases.
+2. Odaberite zadani referentni datum: 02.05.2025. ili 10.09.2026. prema asortimanu. Za novu ponudu ili odstupanje datum uredite u Inventaru proizvoda ili na varijaciji.
+3. Unesite povijesne iznose u istoj poreznoj osnovi kao WooCommerce cijene; provjerite sniženja na referentni dan prema čl. 3. Pravilnika 1583.
+4. U kartici Cjenik unesite OIB pravne osobe ili matični broj fizičke osobe, podatke prodajnog mjesta, broj pohrane i vrstu robe/usluga.
+5. Dopunite neto količinu, jedinicu mjere i barkodove kada su primjenjivi. Označite obveznu jediničnu cijenu za odgovarajuću robu.
+6. Generirajte cjenik i postavite [sidrena_cjenik format="oba" arhiva="da"] na javnu stranicu.
+7. Provjerite javne datoteke, arhivu i automatizirano preuzimanje. Za pouzdan WP-Cron postavite poslužiteljski cron i nadzirite greške.
 
 == Frequently Asked Questions ==
 
-= Hoće li alat prepisati postojeće sidrene cijene? =
+= Mijenja li se datum svaki dan? =
+Ne. To je povijesni datum ili datum prvog nuđenja novog proizvoda. Oznaku možete promijeniti, npr. Bazna cijena na dan {datum}.
 
-Ne. Masovno početno popunjavanje dira samo prazna polja.
+= Što se mijenja pri nadogradnji s 1.x? =
+Izvozna shema se mijenja. Prilagodite vanjske integracije i provjerite sve iznose, datume i poreznu osnovu. Postojeći meta-ključevi i iznosi se ne brišu.
 
-= Podržava li varijabilne proizvode? =
+= Kada se osvježava cjenik? =
+Pokušaj po završetku zahtjeva koji mijenja proizvod, WP-Cron ponovni pokušaj i dnevno generiranje. Rok prema Pravilniku je 11:00 na dan izmjene; kasnije izmjene objavite odmah i provjerite tumačenje za svoju djelatnost. Arhiva je dostupna najmanje 15 dana od zamjene.
 
-Da. Varijacije se izvoze kao zasebne stavke i mogu imati vlastitu sidrenu cijenu i barkod.
-
-= Gdje se cjenik sprema? =
-
-U `wp-content/uploads/cjenik/`. Stalna javna poveznica skriva promjene stvarnog naziva aktualne datoteke, dok arhivske datoteke zadržavaju propisane podatke u nazivu.
-
-= Je li ugrađeno dnevno generiranje potpuno zajamčeno u točno vrijeme? =
-
-Ne. WP-Cron se pokreće prometom na web-stranici. Za zajamčeno izvršenje upotrijebite pravi cron poslužitelja koji poziva WordPress cron.
-
-= Je li ovo pravni savjet ili jamstvo usklađenosti? =
-
-Ne. Dodatak tehnički podržava javno objavljene zahtjeve. Vlasnik trgovine mora provjeriti podatke, poslovna pravila i konačnu usklađenost.
+= Je li zajamčena pravna usklađenost? =
+Ne. Trgovac odgovara za točne povijesne podatke, asortiman, iznimke, poreze i pravodobnu objavu. Potrebna je provjera stvarne trgovine. Detaljne upute i izvori su u README.md repozitorija.
 
 == Changelog ==
+
+= 2.0.0 =
+* Prilagodba pravilnicima NN 132/2026 od 17.11.2026.; naziv dodatka ostaje isti.
+* Datumi bazne cijene po proizvodu/varijaciji i oznaka s {datum}.
+* Uklonjeno automatsko kopiranje aktualne cijene i fallback za nepoznate povijesne iznose.
+* Nova CSV/XML struktura za robu i usluge, neto količina, EAN, izračun cijena s PDV-om i jedinične cijene.
+* Identifikator trgovca i propisani elementi naziva preuzete datoteke.
+* Arhiviranje od zamjene cjenika, javna arhiva i neposredni pokušaj osvježavanja.
+* VAŽNO: promijenjena izvozna shema; potrebna provjera postojećih iznosa i konfiguracije prije generiranja.
+
 
 = 1.2.4 =
 * Složeni (grouped) roditelji više se ne izvoze kao zasebni proizvodi u CSV/XML cjeniku; njihovi podproizvodi ostaju zasebno navedeni.

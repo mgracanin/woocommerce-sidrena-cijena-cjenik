@@ -33,7 +33,7 @@ jobs:
         run: node ./tests/static-check.mjs
 
       - name: Run catalog regression checks
-        run: php ./tests/catalog-rows.php
+        run: php ./tests/admin-flows.php
 
       - name: Build release package
         shell: pwsh
@@ -54,6 +54,7 @@ jobs:
               'sidrena-cijena/LICENSE',
               'sidrena-cijena/NOTICE.md',
               'sidrena-cijena/includes/cjenik.php',
+              'sidrena-cijena/includes/compliance.php',
               'sidrena-cijena/src/Config.php',
               'sidrena-cijena/src/Catalog/State.php',
               'sidrena-cijena/src/Catalog/StreamWriters.php',

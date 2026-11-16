@@ -2,6 +2,25 @@
 
 Sve značajne promjene projekta bilježe se u ovoj datoteci.
 
+## [2.0.0] - 2026-11-16
+
+### Promijenjeno
+
+- bazne cijene prema pravilnicima NN 132/2026; naziv dodatka ostaje isti
+- novi redoslijed/polja CSV/XML izvoza za robu i usluge (promjena kompatibilnosti za vanjske čitače)
+- referentni datum po proizvodu/varijaciji i oznaka s `{datum}`; postojeći vlastiti tekstovi ostaju
+- prazna povijesna cijena ostaje nepoznata; uklonjeno automatsko kopiranje aktualnih cijena
+- neto količina i odvojeni EAN, porezi prema osnovnim stopama trgovine i izračun jedinične cijene
+- obvezni podaci trgovca u nazivu datoteke, brojač objave i vremenska oznaka
+- arhiva od trenutka zamjene (najmanje 15 dana) i zadani javni prikaz arhive
+- neposredni pokušaj generiranja nakon spremanja proizvoda uz WP-Cron ponovni pokušaj
+
+### Nadogradnja
+
+- postojeći iznosi i meta-ključ `_anchor_price` sačuvani su; potrebna provjera datuma, povijesti i porezne osnove
+- bez obveznih podataka generiranje zadržava zadnji objavljeni cjenik i prijavljuje pogrešku
+- nema provjere stvarne trgovine/teme; regresijski testovi koriste simulirane WooCommerce podatke i stvarne izvozne datoteke
+
 ## [1.2.4] - 2026-11-13
 
 ### Ispravljeno

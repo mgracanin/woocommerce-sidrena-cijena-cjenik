@@ -2,8 +2,17 @@
 /** Regression test with in-memory WooCommerce data and the real catalog/writers. */
 define('ABSPATH', __DIR__ . '/');
 define('MINUTE_IN_SECONDS', 60);
+define('DAY_IN_SECONDS', 86400);
 
 class WooCommerce {}
+class WC_Tax {
+    public static function get_base_tax_rates($class = '') { return array('rate' => 0.25); }
+    public static function calc_tax($price, $rates, $inclusive = false) {
+        return array((float) $price * $rates['rate']);
+    }
+}
+function wc_tax_enabled() { return !empty($GLOBALS['test_taxes_enabled']); }
+function wc_prices_include_tax() { return !empty($GLOBALS['test_prices_include_tax']); }
 function add_action(...$args) {}
 function add_filter(...$args) {}
 function add_shortcode(...$args) {}
@@ -14,8 +23,18 @@ function __($text, $domain) { return $text; }
 function is_wp_error($value) { return false; }
 function taxonomy_exists($name) { return false; }
 function wp_strip_all_tags($value) { return strip_tags($value); }
-function get_option($name, $default = false) { return $default; }
-function wc_format_decimal($value, $decimals) { return number_format((float) $value, $decimals, '.', ''); }
+function get_option($name, $default = false) { return $GLOBALS['test_options'][$name] ?? $default; }
+function update_option($name, $value, ...$args) { $GLOBALS['test_options'][$name] = $value; return true; }
+function wc_format_decimal($value, $decimals = 2) { return $value === '' ? '' : number_format((float) $value, $decimals, '.', ''); }
+function wc_get_price_including_tax($product, $args = array()) {
+    $price = isset($args['price']) ? $args['price'] : $product->get_price();
+    return (float) $price * ($GLOBALS['test_tax_multiplier'] ?? 1);
+}
+function wp_date($format, $timestamp = null) { return gmdate($format, $timestamp ?? 1794821400); }
+function sanitize_title($value) { return strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $value)); }
+function trailingslashit($value) { return rtrim($value, '/\\') . '/'; }
+function wp_upload_dir() { return array('basedir' => $GLOBALS['test_upload_dir'], 'baseurl' => 'https://example.test/uploads'); }
+function wp_mkdir_p($path) { return mkdir($path, 0777, true); }
 function wc_get_formatted_variation($product, ...$args) { return $product->get_name(); }
 function wc_get_product($id) { return $GLOBALS['products'][$id] ?? false; }
 function wc_get_products($args) {
@@ -35,6 +54,7 @@ final class CatalogTestProduct
     private $override;
     private $visibility;
     private $status;
+    public $meta = array();
 
     public function __construct($id, $type = 'simple', $price = '4.50', $children = array(), $override = '', $visibility = 'visible', $status = 'publish') {
         $this->id = $id;
@@ -50,12 +70,18 @@ final class CatalogTestProduct
     public function get_children() { return $this->children; }
     public function get_status() { return $this->status; }
     public function get_catalog_visibility() { return $this->visibility; }
-    public function get_meta($key, $single) { return $key === CJENIK_VISIBILITY_META_KEY ? $this->override : ''; }
+    public function get_meta($key, $single = true) { return $this->meta[$key] ?? ($key === CJENIK_VISIBILITY_META_KEY ? $this->override : ''); }
+    public function update_meta_data($key, $value) { $this->meta[$key] = $value; }
+    public function get_parent_id() { return 0; }
+    public function get_regular_price($context = 'view') { return $this->price; }
     public function get_name() { return 'Product ' . $this->id; }
     public function get_sku() { return (string) $this->id; }
     public function get_price() { return $this->price; }
+    public function get_price_html() { return $this->price . ' EUR'; }
     public function is_on_sale() { return false; }
     public function is_in_stock() { return true; }
+    public function is_taxable() { return true; }
+    public function get_tax_class($context = 'view') { return ''; }
 }
 
 require_once dirname(__DIR__) . '/src/Config.php';

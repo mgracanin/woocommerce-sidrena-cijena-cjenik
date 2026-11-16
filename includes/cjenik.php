@@ -1,15 +1,8 @@
 <?php
 /**
- * Cjenik modul - strojno čitljiv cjenik (XML/CSV) prema Odluci o objavi cjenika
- * proizvoda i usluga kao mjeri izravne kontrole cijena (NN 101/2026), na snazi od 1.10.2026.
- *
- * NAPOMENA: Odluka propisuje koje podatke cjenik mora sadržavati, ali ne propisuje
- * točan raspored/redoslijed CSV stupaca ni XSD shemu za XML. Ova implementacija je
- * dobronamjerno tumačenje zahtjeva - preporučujemo provjeru s računovođom/pravnikom
- * prije 1.10.2026.
- *
- * Portions originated in the GPLv2-or-later Aplitap digital implementation;
- * see NOTICE.md for provenance and later modifications.
+ * Cjenik prema Pravilniku o načinu objave cjenika proizvoda (NN 132/2026),
+ * primjena od 17.11.2026. Portions originated in Aplitap digital GPL code;
+ * see NOTICE.md for provenance.
  */
 
 use SidrenaCijenaCjenik\Config;
@@ -17,6 +10,8 @@ use SidrenaCijenaCjenik\Config;
 if (!defined('ABSPATH')) {
     exit;
 }
+
+require_once __DIR__ . '/compliance.php';
 
 define('CJENIK_UNIT_META_KEY', '_cjenik_unit');
 define('CJENIK_BARCODE_META_KEY', '_cjenik_barcode');
@@ -35,7 +30,7 @@ define('CJENIK_CRON_HOOK', 'sidrena_cijena_cjenik_cron_generate');
 define('CJENIK_REFRESH_HOOK', 'sidrena_cijena_cjenik_refresh');
 define('CJENIK_DEFAULT_STORAGE_NUMBER', '01');
 define('CJENIK_DEFAULT_OBJECT_TYPE', 'Internet trgovina');
-define('CJENIK_MIN_RETENTION_DAYS', 30);
+define('CJENIK_MIN_RETENTION_DAYS', 15);
 
 define('CJENIK_CRON_TIME_OPTION', 'sidrena_cijena_cjenik_cron_time');
 define('CJENIK_DEFAULT_CRON_TIME', '07:30');
@@ -77,13 +72,7 @@ function cjenik_cron_time_choices() {
     return $choices;
 }
 
-function cjenik_delimiter_choices() {
-    return array(
-        ';'    => __('točka-zarez ( ; ) - preporučeno za Excel na hrvatskom', 'sidrena-cijena'),
-        ','    => __('zarez ( , )', 'sidrena-cijena'),
-        "\t"   => __('tabulator', 'sidrena-cijena'),
-    );
-}
+function cjenik_delimiter_choices() { return array(';' => __('točka-zarez (;) — NN 132/2026', 'sidrena-cijena')); }
 
 function cjenik_unit_choices() {
     return array(
@@ -93,6 +82,7 @@ function cjenik_unit_choices() {
         'L'   => __('L', 'sidrena-cijena'),
         'ml'  => __('ml', 'sidrena-cijena'),
         'm'   => __('m', 'sidrena-cijena'),
+        'm3'  => __('m3', 'sidrena-cijena'),
         'm2'  => __('m2', 'sidrena-cijena'),
     );
 }
@@ -105,7 +95,8 @@ function cjenik_visibility_choices() {
     );
 }
 
-function cjenik_product_included($product) {
+function cjenik_product_included($product, $ignore_exemption = false) {
+    if (!$ignore_exemption && sidrena_cijena_base_exempt($product)) { return false; }
     $override = $product->get_meta(CJENIK_VISIBILITY_META_KEY, true);
 
     if ($override === 'include') {
@@ -140,6 +131,8 @@ function cjenik_add_product_fields() {
         'desc_tip'    => true,
         'description' => __('Barkod proizvoda za potrebe cjenika. Nije obavezno, ali zakon zahtijeva ovaj podatak u cjeniku ako je dostupan.', 'sidrena-cijena'),
     ));
+
+    woocommerce_wp_text_input(array('id' => '_cjenik_general_barcode', 'label' => __('Opći barkod (ako se razlikuje od EAN-a)', 'sidrena-cijena')));
 
     woocommerce_wp_select(array(
         'id'          => CJENIK_UNIT_META_KEY,
@@ -177,6 +170,10 @@ function cjenik_save_product_fields($post_id) {
             $visibility_override = 'auto';
         }
         update_post_meta($post_id, CJENIK_VISIBILITY_META_KEY, $visibility_override);
+    }
+
+    if (isset($_POST['_cjenik_general_barcode'])) {
+        update_post_meta($post_id, '_cjenik_general_barcode', sanitize_text_field(wp_unslash($_POST['_cjenik_general_barcode'])));
     }
 
     if (isset($_POST[CJENIK_UNIT_META_KEY])) {
@@ -325,38 +322,28 @@ function cjenik_get_barcode($product, $parent = null) {
 
 function cjenik_build_row($product, $parent = null) {
     $name = $parent ? $parent->get_name() . ' - ' . wc_get_formatted_variation($product, true, false) : $product->get_name();
-    $name = wp_strip_all_tags($name);
-
-    $brand_names = cjenik_get_brand_names($product, $parent);
-
-    $price = $product->get_price();
-    $stored_anchor_price = cjenik_get_inherited_meta($product, $parent, Config::ANCHOR_META_KEY);
-    $anchor_price = $stored_anchor_price;
-    if ($anchor_price === '') {
-        $anchor_price = $price;
-    }
+    $gross = cjenik_gross_price($product, $product->get_price());
+    $base = sidrena_cijena_base_value($product, $parent);
     $unit = cjenik_get_inherited_meta($product, $parent, CJENIK_UNIT_META_KEY, 'kom');
-    $barcode = cjenik_get_barcode($product, $parent);
-    $is_sale = $product->is_on_sale();
-    $sale_name = $is_sale ? get_option(CJENIK_SALE_LABEL_OPTION, CJENIK_DEFAULT_SALE_LABEL) : '';
-    $sale_name = apply_filters('sidrena_cijena_cjenik_sale_name', $sale_name, $product, $parent);
-    $unit_price = apply_filters('sidrena_cijena_cjenik_unit_price', $price, $product, $parent, $unit);
-
+    $quantity = cjenik_get_inherited_meta($product, $parent, '_cjenik_net_quantity');
+    if ($quantity === '' && $unit === 'kom') { $quantity = '1'; }
+    $ean = cjenik_get_inherited_meta($product, $parent, '_cjenik_ean');
+    if ($ean === '') { $ean = cjenik_get_barcode($product, $parent); }
     $row = array(
-        'naziv'                  => $name,
-        'sifra_proizvoda'        => $product->get_sku(),
-        'brend'                  => implode(', ', $brand_names),
-        'jedinica_mjere'         => $unit,
-        'cijena_po_jedinici'     => $unit_price !== '' ? wc_format_decimal($unit_price, 2) : '',
-        'maloprodajna_cijena'    => wc_format_decimal($price, 2),
-        'poseban_oblik_prodaje'  => $is_sale ? 'DA' : 'NE',
-        'naziv_posebnog_oblika_prodaje' => $sale_name,
-        'sidrena_cijena'         => $anchor_price !== '' ? wc_format_decimal($anchor_price, 2) : '',
-        'barkod'                 => $barcode,
-        'dostupnost'             => $product->is_in_stock() ? __('Raspoloživo', 'sidrena-cijena') : __('Nije raspoloživo', 'sidrena-cijena'),
-        '_anchor_is_stored'      => $stored_anchor_price !== '',
+        'naziv' => wp_strip_all_tags($name),
+        'sifra_proizvoda' => $product->get_sku(),
+        'brend' => implode(', ', cjenik_get_brand_names($product, $parent)),
+        'neto_kolicina' => $quantity,
+        'jedinica_mjere' => $unit,
+        'maloprodajna_cijena' => $gross,
+        'poseban_oblik_prodaje' => $product->is_on_sale() ? 'DA' : 'NE',
+        'cijena_po_jedinici' => apply_filters('sidrena_cijena_cjenik_unit_price', cjenik_unit_price($gross, $quantity, $unit), $product, $parent, $unit),
+        'barkod' => cjenik_get_inherited_meta($product, $parent, '_cjenik_general_barcode'),
+        'ean' => $ean,
+        'bazna_cijena' => cjenik_gross_price($product, $base),
+        '_anchor_is_stored' => $base !== '',
+        '_unit_required' => cjenik_get_inherited_meta($product, $parent, '_cjenik_unit_required') === 'yes',
     );
-
     return apply_filters('sidrena_cijena_cjenik_row', $row, $product, $parent);
 }
 
@@ -365,7 +352,7 @@ function cjenik_build_csv($rows) {
     $headers = \SidrenaCijenaCjenik\Catalog\CatalogEngine::columns();
     $text_columns = array_fill_keys(\SidrenaCijenaCjenik\Catalog\CatalogEngine::textColumns(), true);
 
-    $delimiter = get_option(CJENIK_DELIMITER_OPTION, CJENIK_DEFAULT_DELIMITER);
+    $delimiter = CJENIK_DEFAULT_DELIMITER;
     if (!array_key_exists($delimiter, cjenik_delimiter_choices())) {
         $delimiter = CJENIK_DEFAULT_DELIMITER;
     }
@@ -416,23 +403,21 @@ function cjenik_build_xml($rows, $meta) {
     return $xml->asXML();
 }
 
-// 6. Naziv datoteke: vrsta objekta, adresa, oznaka objekta, broj skladišta i vremenska oznaka.
+// 6. Naziv datoteke: vrsta objekta, adresa, oznaka objekta, broj pohrane i vremenska oznaka.
 function cjenik_build_filename($extension, $meta, $timestamped = true) {
-    $parts = array(
-        'cjenik',
-        sanitize_title($meta['object_type']),
-        sanitize_title($meta['address']),
-        sanitize_title($meta['location_label']),
-        sanitize_title($meta['storage_number']),
-    );
-
-    if ($timestamped) {
-        $parts[] = wp_date('Ymd-His');
+    $kind = isset($meta['kind']) ? $meta['kind'] : cjenik_catalog_kind();
+    if (!$timestamped) { return 'cjenik_' . $kind . '_trenutni.' . $extension; }
+    cjenik_validate_meta($meta);
+    $parts = array('cjenik', $meta['trader_id']);
+    if (!empty($meta['all_locations'])) {
+        $parts[] = 'ZA_SVA_PRODAJNA_MJESTA';
     } else {
-        $parts[] = 'trenutni';
+        foreach (array('object_type', 'address', 'location_label') as $key) { $parts[] = sanitize_title($meta[$key]); }
     }
-
-    return implode('_', array_filter($parts)) . '.' . $extension;
+    $parts[] = $kind;
+    $parts[] = sanitize_title($meta['storage_number']) . '-' . (isset($meta['sequence']) ? (int) $meta['sequence'] : 1);
+    $parts[] = (new DateTimeImmutable($meta['generated_at']))->format('Ymd_Hi');
+    return implode('_', $parts) . '.' . $extension;
 }
 
 function cjenik_get_meta() {
@@ -460,6 +445,9 @@ function cjenik_get_meta() {
         'storage_number'  => $storage_number,
         'address'         => $address,
         'generated_at'    => wp_date('Y-m-d\TH:i:sP'),
+        'trader_id' => get_option('sidrena_cijena_cjenik_trader_id', ''),
+        'kind' => cjenik_catalog_kind(),
+        'all_locations' => get_option('sidrena_cijena_cjenik_all_locations', 'no') === 'yes',
     );
 }
 
@@ -534,33 +522,21 @@ function cjenik_notify_failure($message) {
 // 8. Brisanje arhivskih datoteka starijih od zadanog broja dana
 function cjenik_cleanup_old_files() {
     $location = cjenik_get_dir();
-    $last_files = get_option(CJENIK_LAST_FILES_OPTION, array());
-    $active_current_files = array_filter(array(
-        isset($last_files['csv_file']) ? basename($last_files['csv_file']) : '',
-        isset($last_files['xml_file']) ? basename($last_files['xml_file']) : '',
-    ));
-    $retention_days = (int) get_option(CJENIK_RETENTION_DAYS_OPTION, CJENIK_MIN_RETENTION_DAYS);
-    if ($retention_days < CJENIK_MIN_RETENTION_DAYS) {
-        $retention_days = CJENIK_MIN_RETENTION_DAYS;
+    $last = get_option(CJENIK_LAST_FILES_OPTION, array());
+    $active = array_filter(array($last['csv_file'] ?? '', $last['xml_file'] ?? '', $last['csv_download_name'] ?? '', $last['xml_download_name'] ?? ''));
+    $replaced = get_option('sidrena_cijena_cjenik_replaced_at', array());
+    $cutoff = time() - max(15, (int) get_option(CJENIK_RETENTION_DAYS_OPTION, 30)) * DAY_IN_SECONDS;
+    foreach ((array) glob(trailingslashit($location['path']) . 'cjenik_*') as $file) {
+        $name = basename($file);
+        if (in_array($name, $active, true)) { continue; }
+        // Unknown legacy files are conservatively kept until a replacement timestamp is recorded.
+        if (!isset($replaced[$name])) { $replaced[$name] = time(); }
+        if ($replaced[$name] < $cutoff && is_file($file) && unlink($file)) { unset($replaced[$name]); }
     }
-    $cutoff = time() - ($retention_days * DAY_IN_SECONDS);
-
-    $files = glob(trailingslashit($location['path']) . 'cjenik_*');
-    if (!$files) {
-        return;
-    }
-
-    foreach ($files as $file) {
-        if (in_array(basename($file), $active_current_files, true)) {
-            continue;
-        }
-        if (filemtime($file) < $cutoff) {
-            unlink($file);
-        }
-    }
+    update_option('sidrena_cijena_cjenik_replaced_at', $replaced, false);
 }
 
-// 9. Automatsko generiranje - dnevno prije 8:00 i odgođeno nakon promjene proizvoda.
+// 9. Automatsko generiranje - dnevno i i odgođeno nakon promjene proizvoda.
 add_action('init', 'cjenik_schedule_cron');
 function cjenik_schedule_cron($force = false) {
     $time = get_option(CJENIK_CRON_TIME_OPTION, CJENIK_DEFAULT_CRON_TIME);
@@ -611,12 +587,21 @@ function cjenik_queue_refresh() {
     }
 
     cjenik_engine()->markDirty();
-    cjenik_schedule_refresh(120);
+    $GLOBALS['sidrena_cjenik_request_changed'] = true;
+    cjenik_schedule_refresh(60);
 }
 
 add_action('woocommerce_update_product', 'cjenik_queue_refresh', 10, 0);
 add_action('woocommerce_product_set_stock', 'cjenik_queue_refresh', 10, 0);
 add_action('woocommerce_variation_set_stock', 'cjenik_queue_refresh', 10, 0);
+add_action('woocommerce_update_product_variation', 'cjenik_queue_refresh', 30, 0);
+add_action('woocommerce_new_product_variation', 'cjenik_queue_refresh', 30, 0);
+add_action('before_delete_post', 'cjenik_refresh_on_product_change', 10, 1);
+add_action('trashed_post', 'cjenik_refresh_on_product_change', 10, 1);
+add_action('untrashed_post', 'cjenik_refresh_on_product_change', 10, 1);
+function cjenik_refresh_on_product_change($id) {
+    if (in_array(get_post_type($id), array('product', 'product_variation'), true)) { cjenik_queue_refresh(); }
+}
 
 add_action('init', 'cjenik_register_rewrite_rule');
 function cjenik_register_rewrite_rule() {
@@ -760,7 +745,7 @@ function cjenik_download_shortcode($atts) {
         array(
             'tekst' => '',
             'format' => 'csv',
-            'arhiva' => 'ne',
+            'arhiva' => 'da',
         ),
         $atts,
         'sidrena_cjenik'
@@ -849,7 +834,7 @@ function cjenik_get_readiness($rows, $meta) {
         'missing_sku'    => 0,
         'missing_brand'  => 0,
         'missing_barcode'=> 0,
-        'settings_ok'    => !empty($meta['object_type']) && !empty($meta['location_label']) && !empty($meta['storage_number']) && !empty($meta['address']),
+        'settings_ok' => !empty($meta['trader_id']) && !empty($meta['storage_number']) && (!empty($meta['all_locations']) || (!empty($meta['object_type']) && !empty($meta['location_label']) && !empty($meta['address']))),
     );
 
     foreach ($rows as $row) {
@@ -865,7 +850,7 @@ function cjenik_get_readiness($rows, $meta) {
         if ($row['brend'] === '') {
             $report['missing_brand']++;
         }
-        if ($row['barkod'] === '') {
+        if ($row['barkod'] === '' && $row['ean'] === '') {
             $report['missing_barcode']++;
         }
     }
@@ -889,6 +874,11 @@ function cjenik_render_tab_content() {
             wp_clear_scheduled_hook(CJENIK_REFRESH_HOOK);
         }
 
+        $trader_id = isset($_POST['sidrena_cijena_cjenik_trader_id']) ? sanitize_text_field(wp_unslash($_POST['sidrena_cijena_cjenik_trader_id'])) : '';
+        if (cjenik_valid_trader_id($trader_id)) { update_option('sidrena_cijena_cjenik_trader_id', $trader_id); }
+        else { echo '<div class="notice notice-error"><p>Unesite ispravan OIB ili matični broj (samo znamenke).</p></div>'; }
+        update_option('sidrena_cijena_cjenik_kind', isset($_POST['sidrena_cijena_cjenik_kind']) && $_POST['sidrena_cijena_cjenik_kind'] === 'usluge' ? 'usluge' : 'roba');
+        update_option('sidrena_cijena_cjenik_all_locations', isset($_POST['sidrena_cijena_cjenik_all_locations']) ? 'yes' : 'no');
         $location_label = isset($_POST[CJENIK_LOCATION_LABEL_OPTION]) ? sanitize_text_field(wp_unslash($_POST[CJENIK_LOCATION_LABEL_OPTION])) : '';
         update_option(CJENIK_LOCATION_LABEL_OPTION, $location_label);
 
@@ -908,16 +898,13 @@ function cjenik_render_tab_content() {
         if (!array_key_exists($delimiter, cjenik_delimiter_choices())) {
             $delimiter = CJENIK_DEFAULT_DELIMITER;
         }
-        update_option(CJENIK_DELIMITER_OPTION, $delimiter);
+        update_option(CJENIK_DELIMITER_OPTION, ';');
 
         update_option(CJENIK_FORMAT_CSV_OPTION, isset($_POST[CJENIK_FORMAT_CSV_OPTION]) ? 'yes' : 'no');
         update_option(CJENIK_FORMAT_XML_OPTION, isset($_POST[CJENIK_FORMAT_XML_OPTION]) ? 'yes' : 'no');
         if (!isset($_POST[CJENIK_FORMAT_CSV_OPTION]) && !isset($_POST[CJENIK_FORMAT_XML_OPTION])) {
             update_option(CJENIK_FORMAT_CSV_OPTION, 'yes');
         }
-
-        $sale_label = isset($_POST[CJENIK_SALE_LABEL_OPTION]) ? sanitize_text_field(wp_unslash($_POST[CJENIK_SALE_LABEL_OPTION])) : CJENIK_DEFAULT_SALE_LABEL;
-        update_option(CJENIK_SALE_LABEL_OPTION, $sale_label !== '' ? $sale_label : CJENIK_DEFAULT_SALE_LABEL);
 
         $retention_days = isset($_POST[CJENIK_RETENTION_DAYS_OPTION]) ? (int) $_POST[CJENIK_RETENTION_DAYS_OPTION] : CJENIK_MIN_RETENTION_DAYS;
         if ($retention_days < CJENIK_MIN_RETENTION_DAYS) {
@@ -939,7 +926,7 @@ function cjenik_render_tab_content() {
     if (isset($_POST['cjenik_generate_now']) && check_admin_referer('cjenik_generate_now_action', 'cjenik_generate_nonce')) {
         $result = cjenik_generate();
         if ($result === false) {
-            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Generiranje cjenika nije uspjelo. Provjerite dozvole na wp-content/uploads.', 'sidrena-cijena') . '</p></div>';
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__('Generiranje cjenika nije uspjelo. Pogledajte Zadnju pogrešku i dopunite tražene podatke.', 'sidrena-cijena') . '</p></div>';
         } else {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Cjenik je upravo generiran.', 'sidrena-cijena') . '</p></div>';
         }
@@ -950,7 +937,7 @@ function cjenik_render_tab_content() {
     $object_type = get_option(CJENIK_OBJECT_TYPE_OPTION, CJENIK_DEFAULT_OBJECT_TYPE);
     $storage_number = get_option(CJENIK_STORAGE_NUMBER_OPTION, CJENIK_DEFAULT_STORAGE_NUMBER);
     $cron_time = get_option(CJENIK_CRON_TIME_OPTION, CJENIK_DEFAULT_CRON_TIME);
-    $delimiter = get_option(CJENIK_DELIMITER_OPTION, CJENIK_DEFAULT_DELIMITER);
+    $delimiter = CJENIK_DEFAULT_DELIMITER;
     $format_csv = get_option(CJENIK_FORMAT_CSV_OPTION, 'yes');
     $format_xml = get_option(CJENIK_FORMAT_XML_OPTION, 'yes');
     $retention_days = get_option(CJENIK_RETENTION_DAYS_OPTION, CJENIK_MIN_RETENTION_DAYS);
@@ -979,13 +966,13 @@ function cjenik_render_tab_content() {
         <?php
         printf(
             /* translators: %s: NN reference */
-            esc_html__('Automatski generira strojno čitljiv cjenik (XML i/ili CSV) prema Odluci o objavi cjenika proizvoda i usluga (%s), na snazi od 1.10.2026.', 'sidrena-cijena'),
-            'NN 101/2026'
+            esc_html__('Automatski generira strojno čitljiv cjenik (XML i/ili CSV) prema Pravilniku o načinu objave cjenika proizvoda (%s), na snazi od 17.11.2026.', 'sidrena-cijena'),
+            'NN 132/2026'
         );
         ?>
     </p>
     <div class="notice notice-warning inline" style="margin:0 0 20px;padding:12px;">
-        <p style="margin:0;"><?php echo esc_html__('Ova funkcionalnost je tehnička pomoć temeljena na javno dostupnom tumačenju propisa. Preporučujemo provjeru s računovođom ili pravnikom prije 1.10.2026., osobito oko točnog popisa brendova, barkodova i jedinica mjere za vaše proizvode.', 'sidrena-cijena'); ?></p>
+        <p style="margin:0;"><?php echo esc_html__('Ova funkcionalnost je tehnička pomoć temeljena na javno dostupnom tumačenju propisa. Preporučujemo provjeru s računovođom ili pravnikom prije objave cjenika, osobito oko točnog popisa brendova, barkodova i jedinica mjere za vaše proizvode.', 'sidrena-cijena'); ?></p>
     </div>
 
     <?php if (empty($meta['address'])) : ?>
@@ -1009,11 +996,28 @@ function cjenik_render_tab_content() {
         <?php wp_nonce_field('cjenik_settings_save', 'cjenik_nonce'); ?>
         <table class="form-table" role="presentation">
             <tr>
+                <th scope="row"><label for="cjenik-trader-id">OIB pravne osobe / matični broj trgovca fizičke osobe</label></th>
+                <td><input id="cjenik-trader-id" name="sidrena_cijena_cjenik_trader_id" type="text" inputmode="numeric" pattern="[0-9]{1,20}" required value="<?php echo esc_attr($meta['trader_id']); ?>" class="regular-text" />
+                <p class="description">Obvezni identifikator za naziv datoteke. Unesite broj prema pravnom obliku trgovca.</p></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="cjenik-kind">Vrsta cjenika</label></th>
+                <td><select id="cjenik-kind" name="sidrena_cijena_cjenik_kind">
+                    <option value="roba" <?php selected(cjenik_catalog_kind(), 'roba'); ?>>Roba</option>
+                    <option value="usluge" <?php selected(cjenik_catalog_kind(), 'usluge'); ?>>Usluge</option>
+                </select><p class="description">Ova WooCommerce trgovina objavljuje jedan cjenik odabrane vrste. Za mješovitu ponudu robe i usluga potrebni su zasebni cjenici; nemojte usluge izvoziti shemom robe.</p></td>
+            </tr>
+            <tr>
+                <th scope="row">Jednak cjenik za sva prodajna mjesta</th>
+                <td><label><input type="checkbox" name="sidrena_cijena_cjenik_all_locations" value="1" <?php checked($meta['all_locations']); ?> /> ZA_SVA_PRODAJNA_MJESTA</label>
+                <p class="description">Označite samo kada je cjenik doista isti za sva prodajna mjesta. Za različite cijene potrebni su zasebni cjenici po mjestu.</p></td>
+            </tr>
+            <tr>
                 <th scope="row"><?php echo esc_html__('Generiranje cjenika', 'sidrena-cijena'); ?></th>
                 <td>
                     <label>
                         <input type="checkbox" name="<?php echo esc_attr(CJENIK_ENABLED_OPTION); ?>" value="1" <?php checked($enabled, 'yes'); ?> />
-                        <?php echo esc_html__('Automatski generiraj cjenik (dnevno prije 8:00 i nakon promjene proizvoda ili zalihe)', 'sidrena-cijena'); ?>
+                        <?php echo esc_html__('Automatski generiraj cjenik (dnevno i nakon promjene proizvoda ili zalihe)', 'sidrena-cijena'); ?>
                     </label>
                 </td>
             </tr>
@@ -1037,7 +1041,7 @@ function cjenik_render_tab_content() {
             </tr>
             <tr>
                 <th scope="row">
-                    <label for="cjenik-storage-number"><?php echo esc_html__('Broj skladišta', 'sidrena-cijena'); ?></label>
+                    <label for="cjenik-storage-number"><?php echo esc_html__('Broj pohrane', 'sidrena-cijena'); ?></label>
                 </th>
                 <td>
                     <input type="text" id="cjenik-storage-number" name="<?php echo esc_attr(CJENIK_STORAGE_NUMBER_OPTION); ?>" value="<?php echo esc_attr($storage_number); ?>" class="regular-text" />
@@ -1057,7 +1061,7 @@ function cjenik_render_tab_content() {
                             <option value="<?php echo esc_attr($value); ?>" <?php selected($cron_time, $value); ?>><?php echo esc_html($option_label); ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description"><?php echo esc_html__('Zakonski rok je 8:00 - preporučujemo sigurnosnu marginu. WordPress WP-Cron ovisi o posjetima web-stranici; za zajamčeno izvršavanje postavite pravi poslužiteljski cron koji redovito pokreće wp-cron.php.', 'sidrena-cijena'); ?></p>
+                    <p class="description"><?php echo esc_html__('Izmijenjeni cjenik objavite do 11:00 na dan izmjene. Promjene nakon tog vremena objavite odmah. WordPress WP-Cron ovisi o posjetima web-stranici; za zajamčeno izvršavanje postavite pravi poslužiteljski cron koji redovito pokreće wp-cron.php.', 'sidrena-cijena'); ?></p>
                     <?php if ($next_scheduled) : ?>
                         <p class="description"><strong><?php echo esc_html__('Sljedeće planirano izvršavanje:', 'sidrena-cijena'); ?></strong> <?php echo esc_html(wp_date('d.m.Y. H:i', $next_scheduled)); ?></p>
                     <?php endif; ?>
@@ -1087,15 +1091,6 @@ function cjenik_render_tab_content() {
                         <?php echo esc_html__('Generiraj XML', 'sidrena-cijena'); ?>
                     </label>
                     <p class="description"><?php echo esc_html__('Zakon prihvaća jedan od ova dva formata - generiranje oba je najsigurnija opcija.', 'sidrena-cijena'); ?></p>
-                </td>
-            </tr>
-            <tr>
-                <th scope="row">
-                    <label for="cjenik-sale-label"><?php echo esc_html__('Naziv posebnog oblika prodaje', 'sidrena-cijena'); ?></label>
-                </th>
-                <td>
-                    <input type="text" id="cjenik-sale-label" name="<?php echo esc_attr(CJENIK_SALE_LABEL_OPTION); ?>" value="<?php echo esc_attr($sale_label); ?>" class="regular-text" />
-                    <p class="description"><?php echo esc_html__('Upisuje se u cjenik za proizvode koje WooCommerce trenutačno označava kao snižene.', 'sidrena-cijena'); ?></p>
                 </td>
             </tr>
             <tr>
@@ -1139,7 +1134,7 @@ function cjenik_render_tab_content() {
         $readiness_cards = array(
             array(__('Stavki u cjeniku', 'sidrena-cijena'), $readiness['total'], false),
             array(__('Bez maloprodajne cijene', 'sidrena-cijena'), $readiness['missing_price'], true),
-            array(__('Bez sidrene cijene', 'sidrena-cijena'), $readiness['missing_anchor'], true),
+            array(__('Bez bazne cijene', 'sidrena-cijena'), $readiness['missing_anchor'], true),
             array(__('Bez šifre', 'sidrena-cijena'), $readiness['missing_sku'], true),
             array(__('Bez brenda', 'sidrena-cijena'), $readiness['missing_brand'], true),
             array(__('Bez barkoda', 'sidrena-cijena'), $readiness['missing_barcode'], true),
@@ -1154,9 +1149,9 @@ function cjenik_render_tab_content() {
         <?php endforeach; ?>
     </div>
     <?php if (!$readiness['settings_ok']) : ?>
-        <div class="notice notice-error inline" style="margin:0 0 16px;padding:10px 12px;"><p style="margin:0;"><?php echo esc_html__('Dovršite vrstu objekta, oznaku objekta, broj skladišta i WooCommerce adresu prije objave cjenika.', 'sidrena-cijena'); ?></p></div>
+        <div class="notice notice-error inline" style="margin:0 0 16px;padding:10px 12px;"><p style="margin:0;"><?php echo esc_html__('Dovršite identifikator trgovca, prodajno mjesto, broj pohrane i adresu prije objave cjenika.', 'sidrena-cijena'); ?></p></div>
     <?php elseif ($readiness['missing_price'] || $readiness['missing_anchor'] || $readiness['missing_sku']) : ?>
-        <div class="notice notice-warning inline" style="margin:0 0 16px;padding:10px 12px;"><p style="margin:0;"><?php echo esc_html__('Cjenik se može generirati, ali označena prazna polja treba dopuniti prije javne objave.', 'sidrena-cijena'); ?></p></div>
+        <div class="notice notice-warning inline" style="margin:0 0 16px;padding:10px 12px;"><p style="margin:0;"><?php echo esc_html__('Nedostajuće maloprodajne i bazne cijene blokiraju objavu. Šifra, brend i barkod dopunjavaju se ako su primjenjivi.', 'sidrena-cijena'); ?></p></div>
     <?php else : ?>
         <div class="notice notice-success inline" style="margin:0 0 16px;padding:10px 12px;"><p style="margin:0;"><?php echo esc_html__('Osnovna obavezna polja i podaci o objektu su popunjeni.', 'sidrena-cijena'); ?></p></div>
     <?php endif; ?>
@@ -1237,53 +1232,17 @@ function cjenik_render_tab_content() {
     <?php else : ?>
         <div style="overflow-x:auto;">
             <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th><?php echo esc_html__('Naziv', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Šifra', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Brend', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Jed. mjere', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Cijena/jed.', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Maloprodajna', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Akcija', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Naziv akcije', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Sidrena cijena', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Barkod', 'sidrena-cijena'); ?></th>
-                        <th><?php echo esc_html__('Dostupnost', 'sidrena-cijena'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($preview_shown as $row) : ?>
-                        <tr>
-                            <td><?php echo esc_html($row['naziv']); ?></td>
-                            <td><?php echo esc_html($row['sifra_proizvoda']); ?></td>
-                            <td><?php echo esc_html($row['brend']); ?></td>
-                            <td><?php echo esc_html($row['jedinica_mjere']); ?></td>
-                            <td><?php echo esc_html($row['cijena_po_jedinici']); ?></td>
-                            <td><?php echo esc_html($row['maloprodajna_cijena']); ?></td>
-                            <td><?php echo esc_html($row['poseban_oblik_prodaje']); ?></td>
-                            <td><?php echo esc_html($row['naziv_posebnog_oblika_prodaje']); ?></td>
-                            <td>
-                                <?php
-                                if ($row['sidrena_cijena'] === '') {
-                                    echo '<span style="color:#b32d2e;">' . esc_html__('nije uneseno', 'sidrena-cijena') . '</span>';
-                                } else {
-                                    echo esc_html($row['sidrena_cijena']);
-                                }
-                                ?>
-                            </td>
-                            <td>
-                                <?php
-                                if ($row['barkod'] === '') {
-                                    echo '<span style="color:#b32d2e;">' . esc_html__('nije uneseno', 'sidrena-cijena') . '</span>';
-                                } else {
-                                    echo esc_html($row['barkod']);
-                                }
-                                ?>
-                            </td>
-                            <td><?php echo esc_html($row['dostupnost']); ?></td>
-                        </tr>
+                <thead><tr>
+                    <?php foreach (\SidrenaCijenaCjenik\Catalog\CatalogEngine::columns() as $column) : ?>
+                        <th><?php echo esc_html($column); ?></th>
                     <?php endforeach; ?>
+                </tr></thead>
+                <tbody>
+                    <?php foreach ($preview_shown as $row) : ?><tr>
+                        <?php foreach (\SidrenaCijenaCjenik\Catalog\CatalogEngine::columns() as $column) : ?>
+                            <td><?php echo esc_html($row[$column] ?? ''); ?></td>
+                        <?php endforeach; ?>
+                    </tr><?php endforeach; ?>
                 </tbody>
             </table>
         </div>

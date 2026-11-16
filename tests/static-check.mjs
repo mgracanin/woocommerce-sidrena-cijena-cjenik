@@ -10,6 +10,7 @@ const files = [
   path.join(root, 'src', 'Catalog', 'State.php'),
   path.join(root, 'src', 'Catalog', 'StreamWriters.php'),
   path.join(root, 'src', 'Catalog', 'CatalogEngine.php'),
+  path.join(root, 'includes', 'compliance.php'),
 ];
 
 const failures = [];
@@ -101,15 +102,15 @@ const main = runtimeSources[0];
 const cjenik = runtimeSources[1];
 const catalogRuntime = runtimeSources.slice(2).join('\n');
 const allRuntime = runtimeSources.join('\n');
-const combined = [main, cjenik].join('\n');
+const combined = [main, cjenik, runtimeSources[6]].join('\n');
 const readme = fs.readFileSync(path.join(root, 'readme.txt'), 'utf8');
 
 assert(main.indexOf("'src/Config.php'") < main.indexOf("'includes/cjenik.php'"), 'Config must be loaded before cjenik.php');
 assert(main.includes('Config::registerLegacyConstants()'), 'Legacy constant compatibility registration is missing');
-assert(main.includes('* Version: 1.2.4'), 'Plugin header version is not 1.2.4');
+assert(main.includes('* Version: 2.0.0'), 'Plugin header version is not 2.0.0');
 assert(main.includes('* Author: Matija Gračanin'), 'Plugin author is not Matija Gračanin');
 assert(main.includes('* Author Email: matijag@gmail.com'), 'Plugin author email is missing');
-assert(readme.includes('Stable tag: 1.2.4'), 'Readme stable tag is not 1.2.4');
+assert(readme.includes('Stable tag: 2.0.0'), 'Readme stable tag is not 2.0.0');
 assert(catalogRuntime.includes('namespace SidrenaCijenaCjenik'), 'Neutral plugin namespace is missing');
 assert(!allRuntime.includes('MatijaGracanin\\SidrenaCijena'), 'Legacy personal namespace is still present');
 assert(main.includes("'pomoc'           => __('Pomoć'"), 'Help tab navigation is missing');
@@ -117,8 +118,6 @@ assert(main.includes('function sidrena_cijena_render_help_tab()'), 'Help tab ren
 assert(main.includes('[sidrena_cjenik format="oba" arhiva="da"]'), 'Help tab shortcode documentation is incomplete');
 assert(main.includes("declare_compatibility('custom_order_tables', __FILE__, true)"), 'HPOS compatibility declaration is missing');
 assert(main.includes("declare_compatibility('cart_checkout_blocks', __FILE__, true)"), 'Cart and Checkout Blocks compatibility declaration is missing');
-assert(main.includes('sidrena_cijena_initialize_product_anchor'), 'Automatic anchor-price initialization is missing');
-assert(main.includes("get_option(Config::AUTO_INITIALIZED_OPTION) === 'yes'"), 'One-time initialization guard is missing');
 
 const functionNames = [...combined.matchAll(/function\s+([a-zA-Z0-9_]+)\s*\(/g)].map((match) => match[1]);
 const duplicates = functionNames.filter((name, index) => functionNames.indexOf(name) !== index);
@@ -142,14 +141,14 @@ const requiredColumns = [
   'naziv',
   'sifra_proizvoda',
   'brend',
+  'neto_kolicina',
   'jedinica_mjere',
   'cijena_po_jedinici',
   'maloprodajna_cijena',
   'poseban_oblik_prodaje',
-  'naziv_posebnog_oblika_prodaje',
-  'sidrena_cijena',
+  'bazna_cijena',
   'barkod',
-  'dostupnost',
+  'ean',
 ];
 for (const column of requiredColumns) {
   assert(cjenik.includes(`'${column}'`), `CSV column missing: ${column}`);
@@ -159,7 +158,6 @@ assert(cjenik.includes("add_shortcode('sidrena_cjenik'"), 'Public price-list sho
 assert(cjenik.includes("add_rewrite_rule('^cjenik-proizvoda\\.csv$'"), 'Stable public CSV route is missing');
 assert(cjenik.includes("add_rewrite_rule('^cjenik-proizvoda\\.xml$'"), 'Stable public XML route is missing');
 assert(cjenik.includes('CJENIK_MIN_RETENTION_DAYS'), 'Retention guard is missing');
-assert(cjenik.includes('cjenik_get_inherited_meta($product, $parent, Config::ANCHOR_META_KEY)'), 'Anchor price export is missing');
 assert(catalogRuntime.includes("$format . '_download_name'"), 'Timestamped download filenames are missing');
 assert(cjenik.includes('encoding="UTF-8"'), 'Explicit UTF-8 XML encoding is missing');
 assert(cjenik.includes("'mime'   => 'application/xml; charset=utf-8'"), 'XML content type is missing');

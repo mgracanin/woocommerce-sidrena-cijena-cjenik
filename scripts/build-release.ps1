@@ -36,6 +36,7 @@ $files = @(
     @{ Source = 'LICENSE'; Destination = 'sidrena-cijena/LICENSE' },
     @{ Source = 'NOTICE.md'; Destination = 'sidrena-cijena/NOTICE.md' },
     @{ Source = 'includes/cjenik.php'; Destination = 'sidrena-cijena/includes/cjenik.php' },
+    @{ Source = 'includes/compliance.php'; Destination = 'sidrena-cijena/includes/compliance.php' },
     @{ Source = 'src/Config.php'; Destination = 'sidrena-cijena/src/Config.php' },
     @{ Source = 'src/Catalog/State.php'; Destination = 'sidrena-cijena/src/Catalog/State.php' },
     @{ Source = 'src/Catalog/StreamWriters.php'; Destination = 'sidrena-cijena/src/Catalog/StreamWriters.php' },
